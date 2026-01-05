@@ -17,6 +17,7 @@
       inset: 0;
       overflow: hidden;
       background: #000;
+      touch-action: pan-y; /* ajuda no swipe horizontal no mobile */
     }
 
     iframe {
@@ -80,6 +81,7 @@
     const frame = document.getElementById("frame");
     const badge = document.getElementById("badge");
     const progress = document.getElementById("progress");
+    const stage = document.getElementById("stage");
 
     let i = 0;
     let startTime = 0;
@@ -98,7 +100,6 @@
 
     function makeUrl(original) {
       // Força refresh (evita cache) sem quebrar #gid
-      // (se tiver hash, coloca _ts antes do hash)
       const parts = original.split("#");
       const base = parts[0];
       const hash = parts[1] ? "#" + parts[1] : "";
@@ -111,7 +112,7 @@
 
     function renderBadge() {
       const status = paused ? "PAUSADO" : "AUTO";
-      badge.textContent = `Gráfico ${i + 1} / ${URLS.length} • ${status} • ← → para navegar • P pausa`;
+      badge.textContent = `Gráfico ${i + 1} / ${URLS.length} • ${status} • ← → ou swipe • P pausa`;
     }
 
     function loadCurrent() {
@@ -129,7 +130,6 @@
       if (!paused) {
         rafId = requestAnimationFrame(tick);
       } else {
-        // Se pausado, mantém barra cheia
         setProgress(1);
       }
     }
@@ -138,7 +138,7 @@
       const n = URLS.length;
       if (n === 0) return;
 
-      i = ((index % n) + n) % n; // normaliza
+      i = ((index % n) + n) % n;
       loadCurrent();
       if (restartTimer) startCycle();
     }
@@ -170,17 +170,13 @@
       paused = !paused;
       cancelAnimationFrame(rafId);
       renderBadge();
-      if (!paused) {
-        // retoma de onde parou: reinicia o ciclo (mais simples e previsível)
-        startCycle();
-      }
+      if (!paused) startCycle();
     }
 
     // Teclas: navegar
     window.addEventListener("keydown", (e) => {
       const key = e.key;
 
-      // evita que a página role em setas / espaço
       const blockKeys = ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," ","PageUp","PageDown","Home","End","Backspace"];
       if (blockKeys.includes(key)) e.preventDefault();
 
@@ -196,6 +192,43 @@
         togglePause();
       }
     }, { passive: false });
+
+    // ===================== SWIPE (CELULAR) =====================
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    const SWIPE_MIN_X = 60;   // px
+    const SWIPE_MAX_Y = 80;   // px
+    const SWIPE_MAX_MS = 800; // ms
+
+    stage.addEventListener("touchstart", (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchStartTime = Date.now();
+    }, { passive: true });
+
+    stage.addEventListener("touchend", (e) => {
+      const t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      if (!t) return;
+
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+      const dt = Date.now() - touchStartTime;
+
+      if (dt > SWIPE_MAX_MS) return;
+      if (Math.abs(dx) < SWIPE_MIN_X) return;
+      if (Math.abs(dy) > SWIPE_MAX_Y) return;
+
+      if (dx < 0) {
+        next({ restartTimer: true }); // swipe esquerda -> próximo
+      } else {
+        prev({ restartTimer: true }); // swipe direita -> anterior
+      }
+    }, { passive: true });
+    // ===========================================================
 
     // Start
     loadCurrent();
