@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TV de Gráficos</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      overflow: hidden;
+    }
+
+    #stage {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+    }
+
+    iframe {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      border: 0;
+      display: block;
+    }
+
+    .badge {
+      position: fixed; top: 10px; left: 10px;
+      color: #fff; font: 14px Arial, sans-serif;
+      background: rgba(0,0,0,.45); padding: 6px 10px; border-radius: 10px;
+      z-index: 9999;
+      user-select: none;
+    }
+
+    .progress-wrap {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 8px;
+      background: rgba(255,255,255,.18);
+      z-index: 9999;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 100%;
+      background: rgba(70,70,70,0.95);
+      transform-origin: left center;
+      transform: scaleX(1);
+    }
+  </style>
+</head>
+<body>
+  <div class="badge" id="badge"></div>
+
+  <div id="stage">
+    <iframe id="frame" allowfullscreen></iframe>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progress"></div>
+  </div>
+
+  <script>
+    const URLS = [
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubchart?oid=479972922&format=interactive",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubchart?oid=1105523554&format=interactive",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=82066333",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=219207332",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=34100657"
+    ];
+
+    const INTERVALO_MS = 30_000;
+
+    // Se quiser “crop/zoom”
+    const ZOOM = 1.00;
+
+    const frame = document.getElementById("frame");
+    const badge = document.getElementById("badge");
+    const progress = document.getElementById("progress");
+
+    let i = 0;
+    let startTime = 0;
+    let rafId = 0;
+    let paused = false;
+
+    function applyZoom() {
+      frame.style.transformOrigin = "center center";
+      frame.style.transform = `scale(${ZOOM})`;
+    }
+
+    function setProgress(fracRemaining) {
+      const v = Math.max(0, Math.min(1, fracRemaining));
+      progress.style.transform = `scaleX(${v})`;
+    }
+
+    function makeUrl(original) {
+      // Força refresh (evita cache) sem quebrar #gid
+      // (se tiver hash, coloca _ts antes do hash)
+      const parts = original.split("#");
+      const base = parts[0];
+      const hash = parts[1] ? "#" + parts[1] : "";
+
+      const url = new URL(base);
+      url.searchParams.set("_ts", Date.now());
+
+      return url.toString() + hash;
+    }
+
+    function renderBadge() {
+      const status = paused ? "PAUSADO" : "AUTO";
+      badge.textContent = `Gráfico ${i + 1} / ${URLS.length} • ${status} • ← → para navegar • P pausa`;
+    }
+
+    function loadCurrent() {
+      const original = URLS[i];
+      frame.src = makeUrl(original);
+      applyZoom();
+      renderBadge();
+    }
+
+    function startCycle() {
+      cancelAnimationFrame(rafId);
+      startTime = performance.now();
+      setProgress(1);
+
+      if (!paused) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        // Se pausado, mantém barra cheia
+        setProgress(1);
+      }
+    }
+
+    function goTo(index, { restartTimer = true } = {}) {
+      const n = URLS.length;
+      if (n === 0) return;
+
+      i = ((index % n) + n) % n; // normaliza
+      loadCurrent();
+      if (restartTimer) startCycle();
+    }
+
+    function next({ restartTimer = true } = {}) {
+      goTo(i + 1, { restartTimer });
+    }
+
+    function prev({ restartTimer = true } = {}) {
+      goTo(i - 1, { restartTimer });
+    }
+
+    function tick(now) {
+      const elapsed = now - startTime;
+      const remaining = INTERVALO_MS - elapsed;
+
+      setProgress(remaining / INTERVALO_MS);
+
+      if (remaining <= 0) {
+        cancelAnimationFrame(rafId);
+        setProgress(0);
+        next({ restartTimer: true });
+        return;
+      }
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function togglePause() {
+      paused = !paused;
+      cancelAnimationFrame(rafId);
+      renderBadge();
+      if (!paused) {
+        // retoma de onde parou: reinicia o ciclo (mais simples e previsível)
+        startCycle();
+      }
+    }
+
+    // Teclas: navegar
+    window.addEventListener("keydown", (e) => {
+      const key = e.key;
+
+      // evita que a página role em setas / espaço
+      const blockKeys = ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," ","PageUp","PageDown","Home","End","Backspace"];
+      if (blockKeys.includes(key)) e.preventDefault();
+
+      if (key === "ArrowRight" || key === "ArrowDown" || key === "PageDown" || key === " ") {
+        next({ restartTimer: true });
+      } else if (key === "ArrowLeft" || key === "ArrowUp" || key === "PageUp" || key === "Backspace") {
+        prev({ restartTimer: true });
+      } else if (key === "Home") {
+        goTo(0, { restartTimer: true });
+      } else if (key === "End") {
+        goTo(URLS.length - 1, { restartTimer: true });
+      } else if (key === "p" || key === "P") {
+        togglePause();
+      }
+    }, { passive: false });
+
+    // Start
+    loadCurrent();
+    startCycle();
+  </script>
+</body>
+</html>
