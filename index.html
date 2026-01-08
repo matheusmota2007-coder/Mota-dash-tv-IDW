@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TV de Gráficos</title>
+
   <style>
     html, body {
       height: 100%;
@@ -12,7 +13,6 @@
       overflow: hidden;
     }
 
-    
     #stage {
       position: fixed;
       inset: 0;
@@ -30,20 +30,28 @@
     }
 
     .badge {
-      position: fixed; top: 10px; left: 10px;
-      color: #fff; font: 14px Arial, sans-serif;
-      background: rgba(0,0,0,.45); padding: 6px 10px; border-radius: 10px;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      color: #fff;
+      font: 14px Arial, sans-serif;
+      background: rgba(0,0,0,.45);
+      padding: 6px 10px;
+      border-radius: 10px;
       z-index: 9999;
       user-select: none;
     }
 
     .progress-wrap {
       position: fixed;
-      left: 0; right: 0; bottom: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       height: 8px;
       background: rgba(255,255,255,.18);
       z-index: 9999;
     }
+
     .progress-bar {
       height: 100%;
       width: 100%;
@@ -52,10 +60,9 @@
       transform: scaleX(1);
     }
 
-    /* ===== Botões de navegação ===== */
     .nav-btn {
       position: fixed;
-      bottom: 14px; /* fica acima da barra (8px) com folga */
+      bottom: 14px;
       width: 54px;
       height: 54px;
       border-radius: 999px;
@@ -69,18 +76,26 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
+
     .nav-btn:active {
       transform: scale(0.96);
     }
+
     #btnPrev { left: 12px; }
     #btnNext { right: 12px; }
 
-    /* opcional: em telas muito pequenas, reduz um pouco */
     @media (max-width: 420px) {
-      .nav-btn { width: 46px; height: 46px; line-height: 46px; font-size: 22px; bottom: 12px; }
+      .nav-btn {
+        width: 46px;
+        height: 46px;
+        line-height: 46px;
+        font-size: 22px;
+        bottom: 12px;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="badge" id="badge"></div>
 
@@ -88,9 +103,8 @@
     <iframe id="frame" allowfullscreen></iframe>
   </div>
 
-  <!-- Setas -->
-  <div class="nav-btn" id="btnPrev" title="Anterior">◀</div>
-  <div class="nav-btn" id="btnNext" title="Próximo">▶</div>
+  <div class="nav-btn" id="btnPrev">◀</div>
+  <div class="nav-btn" id="btnNext">▶</div>
 
   <div class="progress-wrap">
     <div class="progress-bar" id="progress"></div>
@@ -98,31 +112,20 @@
 
   <script>
     const URLS = [
-   
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=1375987279",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=181392821",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=1377967419",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=989494084",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=409465462",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=1464654695",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=1781419413",
-
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=82066333",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=219207332",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=34100657",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=285689922",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=1817641505",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=423305502",
-
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml?widget=true&headers=false&gid=1375987279",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml?widget=true&headers=false&gid=181392821",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml?widget=true&headers=false&gid=1377967419",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml?widget=true&headers=false&gid=989494084",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml?widget=true&headers=false&gid=409465462",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml?widget=true&headers=false&gid=1464654695",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml?widget=true&headers=false&gid=1781419413"
     ];
 
-    const INTERVALO_MS = 30_000;
-    const ZOOM = 1.00;
+    const INTERVALO_MS = 30000;
 
     const frame = document.getElementById("frame");
     const badge = document.getElementById("badge");
     const progress = document.getElementById("progress");
-
     const btnPrev = document.getElementById("btnPrev");
     const btnNext = document.getElementById("btnNext");
 
@@ -130,116 +133,74 @@
     let startTime = 0;
     let rafId = 0;
     let paused = false;
+    let loaded = false;
 
-    function applyZoom() {
-      frame.style.transformOrigin = "center center";
-      frame.style.transform = `scale(${ZOOM})`;
-    }
-
-    function setProgress(fracRemaining) {
-      const v = Math.max(0, Math.min(1, fracRemaining));
-      progress.style.transform = `scaleX(${v})`;
-    }
-
-    function makeUrl(original) {
-      const parts = original.split("#");
-      const base = parts[0];
-      const hash = parts[1] ? "#" + parts[1] : "";
-
-      const url = new URL(base);
-      url.searchParams.set("_ts", Date.now());
-
-      return url.toString() + hash;
+    function setProgress(v) {
+      progress.style.transform = `scaleX(${Math.max(0, Math.min(1, v))})`;
     }
 
     function renderBadge() {
-      const status = paused ? "PAUSADO" : "AUTO";
-      badge.textContent = `Gráfico ${i + 1} / ${URLS.length} • ${status} • setas ◀ ▶ • P pausa`;
+      badge.textContent = `Gráfico ${i + 1} / ${URLS.length} • ${paused ? "PAUSADO" : "AUTO"}`;
     }
 
     function loadCurrent() {
-      frame.src = makeUrl(URLS[i]);
-      applyZoom();
+      loaded = false;
       renderBadge();
+      setProgress(1);
+      frame.style.transform = "none";
+      frame.src = URLS[i];
     }
 
     function startCycle() {
       cancelAnimationFrame(rafId);
       startTime = performance.now();
-      setProgress(1);
-
-      if (!paused) {
-        rafId = requestAnimationFrame(tick);
-      } else {
-        setProgress(1);
-      }
+      rafId = requestAnimationFrame(tick);
     }
-
-    function goTo(index, { restartTimer = true } = {}) {
-      const n = URLS.length;
-      if (n === 0) return;
-
-      i = ((index % n) + n) % n;
-      loadCurrent();
-      if (restartTimer) startCycle();
-    }
-
-    function next({ restartTimer = true } = {}) { goTo(i + 1, { restartTimer }); }
-    function prev({ restartTimer = true } = {}) { goTo(i - 1, { restartTimer }); }
 
     function tick(now) {
       const elapsed = now - startTime;
       const remaining = INTERVALO_MS - elapsed;
-
       setProgress(remaining / INTERVALO_MS);
 
       if (remaining <= 0) {
-        cancelAnimationFrame(rafId);
-        setProgress(0);
-        next({ restartTimer: true });
+        next();
         return;
       }
       rafId = requestAnimationFrame(tick);
     }
 
-    function togglePause() {
-      paused = !paused;
-      cancelAnimationFrame(rafId);
-      renderBadge();
-      if (!paused) startCycle();
+    function next() {
+      i = (i + 1) % URLS.length;
+      loadCurrent();
     }
 
-    // Botões (mouse e touch)
-    btnNext.addEventListener("click", () => next({ restartTimer: true }));
-    btnPrev.addEventListener("click", () => prev({ restartTimer: true }));
+    function prev() {
+      i = (i - 1 + URLS.length) % URLS.length;
+      loadCurrent();
+    }
 
-    // Melhora o toque no mobile (evita atraso)
-    btnNext.addEventListener("touchend", (e) => { e.preventDefault(); next({ restartTimer: true }); }, { passive:false });
-    btnPrev.addEventListener("touchend", (e) => { e.preventDefault(); prev({ restartTimer: true }); }, { passive:false });
+    function togglePause() {
+      paused = !paused;
+      renderBadge();
+      cancelAnimationFrame(rafId);
+      if (!paused && loaded) startCycle();
+    }
 
-    // Teclas
+    frame.addEventListener("load", () => {
+      loaded = true;
+      if (!paused) startCycle();
+    });
+
+    btnNext.onclick = next;
+    btnPrev.onclick = prev;
+
     window.addEventListener("keydown", (e) => {
-      const key = e.key;
-      const blockKeys = ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," ","PageUp","PageDown","Home","End","Backspace"];
-      if (blockKeys.includes(key)) e.preventDefault();
+      if (["ArrowRight"," ","PageDown"].includes(e.key)) next();
+      if (["ArrowLeft","PageUp","Backspace"].includes(e.key)) prev();
+      if (e.key === "p" || e.key === "P") togglePause();
+    });
 
-      if (key === "ArrowRight" || key === "ArrowDown" || key === "PageDown" || key === " ") {
-        next({ restartTimer: true });
-      } else if (key === "ArrowLeft" || key === "ArrowUp" || key === "PageUp" || key === "Backspace") {
-        prev({ restartTimer: true });
-      } else if (key === "Home") {
-        goTo(0, { restartTimer: true });
-      } else if (key === "End") {
-        goTo(URLS.length - 1, { restartTimer: true });
-      } else if (key === "p" || key === "P") {
-        togglePause();
-      }
-    }, { passive: false });
-
-    // Start
     loadCurrent();
-    startCycle();
   </script>
 </body>
 </html>
-
