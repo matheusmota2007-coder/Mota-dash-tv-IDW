@@ -50,16 +50,13 @@ const SOURCES = [
     csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdQuoLLALTl3wLHHfrpuZAZkFybA4qRdGNExiE1tMT6LDJC2_j-fhS0Jzlv5NInYxbHaxNLI0CMggw/pub?gid=806509342&single=true&output=csv"
   },
   {
-    name: "Corte ",
-    // ✅ use /pub (não pubhtml) quando quiser CSV
+    name: "Corte",
     csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pub?gid=279273967&single=true&output=csv"
   },
-{
+  {
     name: "Galoneira automatica",
-    // ✅ use /pub (não pubhtml) quando quiser CSV
     csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVX3C9R_AW0ArwQR2qCwerCW3GA6MfTWS-aJuH7JIZvxeLBzAXm76t2hXzeJ1m8LKUzaYJdyeFasUA/pub?gid=806509342&single=true&output=csv"
   }
-    
 ];
 
 const LAST_DAYS = 30;
@@ -72,6 +69,7 @@ const elTitle = document.getElementById("title");
 const elMeta  = document.getElementById("meta");
 const elMsg   = document.getElementById("msg");
 const elProg  = document.getElementById("progress");
+
 function showMsg(txt){ elMsg.style.display="flex"; elMsg.textContent=txt; }
 function hideMsg(){ elMsg.style.display="none"; elMsg.textContent=""; }
 
@@ -94,11 +92,13 @@ function parseCSV(text){
   if(cur.length || row.length){ row.push(cur); rows.push(row); }
   return rows.filter(r => r.some(x => String(x??"").trim()!==""));
 }
+
 function normHeader(s){
   return String(s??"").trim().toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .replace(/[^\w\s]/g," ").replace(/\s+/g," ").trim();
 }
+
 function parsePercentOrNumber(v){
   const s=String(v??"").trim(); if(!s) return null;
   if(s.endsWith("%")){
@@ -110,12 +110,14 @@ function parsePercentOrNumber(v){
   const n=Number(norm);
   return Number.isFinite(n)?n:null;
 }
+
 function parseDDMMYYYY(v){
   const s=String(v??"").trim();
   const m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if(!m) return null;
   return new Date(Date.UTC(+m[3], +m[2]-1, +m[1], 12,0,0));
 }
+
 function parseHMS(v){
   const s=String(v??"").trim();
   const m=s.match(/^(\d{1,3}):(\d{2}):(\d{2})$/);
@@ -124,11 +126,13 @@ function parseHMS(v){
   if(![hh,mm,ss].every(Number.isFinite)) return null;
   return hh*3600+mm*60+ss;
 }
+
 function fmtDateShort(d){
   const dd=String(d.getUTCDate()).padStart(2,"0");
   const mm=String(d.getUTCMonth()+1).padStart(2,"0");
   return `${dd}/${mm}`;
 }
+
 function fmtInt(n){ return (n==null) ? "" : Math.round(n).toLocaleString("pt-BR"); }
 function fmt1(n){ return (n==null) ? "" : (Math.round(n*10)/10).toLocaleString("pt-BR"); }
 function fmt2(n){ return (n==null) ? "" : (Math.round(n*100)/100).toLocaleString("pt-BR"); }
@@ -226,11 +230,13 @@ function baseOption(master){
     }
   };
 }
+
 function gradientArea(top, bottom){
   return new echarts.graphic.LinearGradient(0,0,0,1,[
     {offset:0,color:top},{offset:1,color:bottom}
   ]);
 }
+
 function lineEndLabel(master, fmtFn, suffix=""){
   return {
     show:true, position:"top", distance:6,
@@ -238,13 +244,43 @@ function lineEndLabel(master, fmtFn, suffix=""){
     formatter:(p)=> (p.dataIndex===master.length-1) ? `${fmtFn(p.value)}${suffix}` : ""
   };
 }
-function barTopLabel(fmtFn, suffix=""){
-  return {show:true, position:"top", color:"rgba(255,255,255,0.90)", fontSize:12, fontWeight:700,
-    formatter:(p)=> `${fmtFn(p.value)}${suffix}` };
+
+/* ✅ NOVO: label em TODOS os pontos de linha (ignorando null) */
+function lineAllLabels(fmtFn, suffix=""){
+  return {
+    show:true,
+    position:"top",
+    distance:6,
+    color:"rgba(255,255,255,0.90)",
+    fontSize:11,
+    fontWeight:700,
+    formatter:(p)=>{
+      if(p.value == null || p.value === "" || Number.isNaN(p.value)) return "";
+      return `${fmtFn(p.value)}${suffix}`;
+    }
+  };
 }
+
+function barTopLabel(fmtFn, suffix=""){
+  return {
+    show:true,
+    position:"top",
+    color:"rgba(255,255,255,0.90)",
+    fontSize:12,
+    fontWeight:700,
+    formatter:(p)=> `${fmtFn(p.value)}${suffix}`
+  };
+}
+
 function stackInsideLabel(fmtFn, suffix=""){
-  return {show:true, position:"inside", color:"rgba(255,255,255,0.92)", fontSize:12, fontWeight:700,
-    formatter:(p)=> `${fmtFn(p.value)}${suffix}` };
+  return {
+    show:true,
+    position:"inside",
+    color:"rgba(255,255,255,0.92)",
+    fontSize:12,
+    fontWeight:700,
+    formatter:(p)=> `${fmtFn(p.value)}${suffix}`
+  };
 }
 
 /* =========================
@@ -262,10 +298,15 @@ function buildFiveScreensForSource(sourceIndex){
         opt.yAxis.min=0; opt.yAxis.max=100;
         opt.series=[{
           name:"Utilização (%)",
-          type:"line", smooth:true, showSymbol:false, connectNulls:true,
+          type:"line",
+          smooth:true,
+          showSymbol:true,
+          symbol:"circle",
+          symbolSize:5,
+          connectNulls:true,
           lineStyle:{width:3},
           areaStyle:{color:gradientArea("rgba(79,124,255,0.33)","rgba(79,124,255,0.03)")},
-          label: lineEndLabel(master, fmt2, "%"),
+          label: lineAllLabels(fmt2, "%"),
           data: master.map(x=>x.util)
         }];
         return opt;
@@ -278,10 +319,15 @@ function buildFiveScreensForSource(sourceIndex){
         opt.yAxis.min=0; opt.yAxis.max=100;
         opt.series=[{
           name:"Eficiência 5d (%)",
-          type:"line", smooth:true, showSymbol:false, connectNulls:true,
+          type:"line",
+          smooth:true,
+          showSymbol:true,
+          symbol:"circle",
+          symbolSize:5,
+          connectNulls:true,
           lineStyle:{width:3},
           areaStyle:{color:gradientArea("rgba(36,211,238,0.28)","rgba(36,211,238,0.03)")},
-          label: lineEndLabel(master, fmt2, "%"),
+          label: lineAllLabels(fmt2, "%"),
           data: master.map(x=>x.ef5)
         }];
         return opt;
@@ -293,7 +339,8 @@ function buildFiveScreensForSource(sourceIndex){
         const opt = baseOption(master);
         opt.series=[{
           name:"Peças",
-          type:"bar", barWidth:"55%",
+          type:"bar",
+          barWidth:"55%",
           itemStyle:{
             borderRadius:[10,10,0,0],
             color:new echarts.graphic.LinearGradient(0,0,0,1,[
@@ -313,9 +360,14 @@ function buildFiveScreensForSource(sourceIndex){
         const opt = baseOption(master);
         opt.series=[{
           name:"TC médio (s)",
-          type:"line", smooth:true, showSymbol:false, connectNulls:true,
+          type:"line",
+          smooth:true,
+          showSymbol:true,
+          symbol:"circle",
+          symbolSize:5,
+          connectNulls:true,
           lineStyle:{width:3,color:"rgba(255,255,255,0.85)"},
-          label: lineEndLabel(master, fmtInt, "s"),
+          label: lineAllLabels(fmtInt, "s"),
           data: master.map(x=>x.tc_s)
         }];
         return opt;
@@ -328,14 +380,24 @@ function buildFiveScreensForSource(sourceIndex){
         opt.legend={top:6,textStyle:{color:"rgba(255,255,255,0.78)"}};
         opt.yAxis.min=0;
         opt.series=[
-          {name:"Funcionando (h)", type:"bar", stack:"total", barWidth:"55%",
-           itemStyle:{borderRadius:[10,10,0,0],color:"rgba(36,211,238,0.85)"},
-           label: stackInsideLabel(fmt1,"h"),
-           data: master.map(x=>x.func_h)},
-          {name:"Parado (h)", type:"bar", stack:"total", barWidth:"55%",
-           itemStyle:{borderRadius:[10,10,0,0],color:"rgba(255,99,132,0.72)"},
-           label: stackInsideLabel(fmt1,"h"),
-           data: master.map(x=>x.parado_h)}
+          {
+            name:"Funcionando (h)",
+            type:"bar",
+            stack:"total",
+            barWidth:"55%",
+            itemStyle:{borderRadius:[10,10,0,0],color:"rgba(36,211,238,0.85)"},
+            label: stackInsideLabel(fmt1,"h"),
+            data: master.map(x=>x.func_h)
+          },
+          {
+            name:"Parado (h)",
+            type:"bar",
+            stack:"total",
+            barWidth:"55%",
+            itemStyle:{borderRadius:[10,10,0,0],color:"rgba(255,99,132,0.72)"},
+            label: stackInsideLabel(fmt1,"h"),
+            data: master.map(x=>x.parado_h)
+          }
         ];
         return opt;
       }
@@ -350,8 +412,8 @@ let chart=null;
 let startT=0;
 let screenIdx=0;
 
-let DATA_BY_SOURCE = [];   // array de masterData por fonte
-let SCREENS = [];          // array linear: {title, option()}
+let DATA_BY_SOURCE = [];
+let SCREENS = [];
 
 function setHeader(){
   const s = SCREENS[screenIdx];
@@ -396,14 +458,12 @@ document.getElementById("prev").addEventListener("click", prev);
     elTitle.textContent="Carregando dados (multi links)…";
     elMeta.textContent="Aguarde";
 
-    // Carrega todas as fontes (em sequência, mais confiável pra TV box)
     DATA_BY_SOURCE = [];
     for(let i=0;i<SOURCES.length;i++){
       const m = await loadMasterFrom(SOURCES[i].csvUrl);
       DATA_BY_SOURCE.push(m);
     }
 
-    // Monta roteiro: para cada fonte, adiciona 5 telas
     SCREENS = [];
     for(let i=0;i<SOURCES.length;i++){
       SCREENS.push(...buildFiveScreensForSource(i));
@@ -415,7 +475,6 @@ document.getElementById("prev").addEventListener("click", prev);
     render();
     requestAnimationFrame(tick);
 
-    // Teclado/controle
     window.addEventListener("keydown", (e)=>{
       if(e.key==="ArrowRight" || e.key===" " || e.key==="PageDown") next();
       else if(e.key==="ArrowLeft" || e.key==="Backspace" || e.key==="PageUp") prev();
@@ -435,7 +494,3 @@ document.getElementById("prev").addEventListener("click", prev);
 </script>
 </body>
 </html>
-
-
-
-
