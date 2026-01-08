@@ -3,38 +3,78 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TV de Gráficos</title>
+  <title>Mota Dash TV</title>
+
   <style>
     html, body {
       height: 100%;
       margin: 0;
       background: #000;
       overflow: hidden;
+      font-family: Arial, sans-serif;
+      color: #fff;
     }
 
-    
-    #stage {
+    #wrap {
       position: fixed;
       inset: 0;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       background: #000;
     }
 
-    iframe {
-      position: absolute;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      border: 0;
+    #topbar {
+      position: relative;
+      padding: 10px 12px 6px 12px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(0,0,0,0.55);
+      z-index: 5;
+    }
+
+    #title {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 72vw;
+    }
+
+    #meta {
+      font-size: 13px;
+      opacity: 0.92;
+      white-space: nowrap;
+    }
+
+    #stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      padding: 10px 10px 18px 10px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
       display: block;
     }
 
-    .badge {
-      position: fixed; top: 10px; left: 10px;
-      color: #fff; font: 14px Arial, sans-serif;
-      background: rgba(0,0,0,.45); padding: 6px 10px; border-radius: 10px;
-      z-index: 9999;
-      user-select: none;
+    #msg {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      font-size: 15px;
+      background: rgba(0,0,0,0.78);
+      z-index: 8;
+      white-space: pre-wrap;
     }
 
     .progress-wrap {
@@ -42,20 +82,19 @@
       left: 0; right: 0; bottom: 0;
       height: 8px;
       background: rgba(255,255,255,.18);
-      z-index: 9999;
+      z-index: 10;
     }
     .progress-bar {
       height: 100%;
       width: 100%;
-      background: rgba(70,70,70,0.95);
+      background: rgba(140,140,140,0.9);
       transform-origin: left center;
       transform: scaleX(1);
     }
 
-    /* ===== Botões de navegação ===== */
     .nav-btn {
       position: fixed;
-      bottom: 14px; /* fica acima da barra (8px) com folga */
+      bottom: 14px;
       width: 54px;
       height: 54px;
       border-radius: 999px;
@@ -65,30 +104,37 @@
       font: 24px Arial, sans-serif;
       line-height: 54px;
       text-align: center;
-      z-index: 10000;
+      z-index: 11;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
-    .nav-btn:active {
-      transform: scale(0.96);
-    }
+    .nav-btn:active { transform: scale(0.96); }
     #btnPrev { left: 12px; }
     #btnNext { right: 12px; }
 
-    /* opcional: em telas muito pequenas, reduz um pouco */
     @media (max-width: 420px) {
       .nav-btn { width: 46px; height: 46px; line-height: 46px; font-size: 22px; bottom: 12px; }
+      #title { max-width: 62vw; }
     }
   </style>
-</head>
-<body>
-  <div class="badge" id="badge"></div>
 
-  <div id="stage">
-    <iframe id="frame" allowfullscreen></iframe>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="topbar">
+      <div id="title">Carregando…</div>
+      <div id="meta"></div>
+    </div>
+
+    <div id="stage">
+      <canvas id="chart"></canvas>
+      <div id="msg"></div>
+    </div>
   </div>
 
-  <!-- Setas -->
   <div class="nav-btn" id="btnPrev" title="Anterior">◀</div>
   <div class="nav-btn" id="btnNext" title="Próximo">▶</div>
 
@@ -97,95 +143,318 @@
   </div>
 
   <script>
-    const URLS = [
-   
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=1375987279",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=181392821",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=1377967419",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=989494084",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=409465462",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=1464654695",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pubhtml#gid=1781419413",
+    // =========================================================
+    // CONFIG (você só mexe aqui se precisar)
+    // =========================================================
 
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=82066333",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=219207332",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=34100657",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=285689922",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=1817641505",
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pubhtml#gid=423305502",
-
-    ];
+    // ✅ SEU CSV (master table)
+    const CSV_URL =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdQuoLLALTl3wLHHfrpuZAZkFybA4qRdGNExiE1tMT6LDJC2_j-fhS0Jzlv5NInYxbHaxNLI0CMggw/pub?gid=806509342&single=true&output=csv";
 
     const INTERVALO_MS = 30_000;
-    const ZOOM = 1.00;
+    const ULTIMOS_DIAS = 30;
 
-    const frame = document.getElementById("frame");
-    const badge = document.getElementById("badge");
+    // =========================================================
+    // UTIL (parse pt-BR)
+    // =========================================================
+    function showMessage(msg) {
+      const el = document.getElementById("msg");
+      el.style.display = "flex";
+      el.textContent = msg;
+    }
+    function hideMessage() {
+      const el = document.getElementById("msg");
+      el.style.display = "none";
+      el.textContent = "";
+    }
+
+    function parseCSV(text) {
+      // parser simples com suporte a aspas
+      const rows = [];
+      let row = [];
+      let cur = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const next = text[i + 1];
+
+        if (c === '"' && inQuotes && next === '"') { cur += '"'; i++; continue; }
+        if (c === '"') { inQuotes = !inQuotes; continue; }
+
+        if (!inQuotes && (c === "\n" || c === "\r")) {
+          if (c === "\r" && next === "\n") i++;
+          row.push(cur);
+          rows.push(row);
+          row = [];
+          cur = "";
+          continue;
+        }
+
+        if (!inQuotes && c === ",") {
+          row.push(cur);
+          cur = "";
+          continue;
+        }
+
+        cur += c;
+      }
+      if (cur.length || row.length) {
+        row.push(cur);
+        rows.push(row);
+      }
+      return rows.filter(r => r.some(x => String(x ?? "").trim() !== ""));
+    }
+
+    function normalizeHeader(h) {
+      return String(h ?? "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove acentos
+        .replace(/\s+/g, " ");
+    }
+
+    function parsePtNumber(v) {
+      const s = String(v ?? "").trim();
+      if (!s) return null;
+
+      // percent?
+      if (s.endsWith("%")) {
+        const raw = s.replace("%", "").trim();
+        const n = parsePtNumber(raw);
+        return (n == null) ? null : n / 100;
+      }
+
+      // remove espaços
+      const t = s.replace(/\s+/g, "");
+
+      // trata milhares pt-br (1.727) e decimais (6,72)
+      // regra: remove pontos, troca vírgula por ponto
+      const norm = t.replace(/\./g, "").replace(",", ".");
+      const n = Number(norm);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function parseDDMMYYYY(s) {
+      const t = String(s ?? "").trim();
+      const m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (!m) return null;
+      const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
+      const d = new Date(Date.UTC(yyyy, mm - 1, dd, 12, 0, 0)); // meio-dia UTC evita shift
+      return Number.isFinite(d.getTime()) ? d : null;
+    }
+
+    function parseHMS(s) {
+      const t = String(s ?? "").trim();
+      const m = t.match(/^(\d{1,3}):(\d{2}):(\d{2})$/);
+      if (!m) return null;
+      const hh = Number(m[1]), mm = Number(m[2]), ss = Number(m[3]);
+      if (![hh,mm,ss].every(Number.isFinite)) return null;
+      return hh * 3600 + mm * 60 + ss; // segundos
+    }
+
+    function fmtDateBR(dateObj) {
+      const dd = String(dateObj.getUTCDate()).padStart(2, "0");
+      const mm = String(dateObj.getUTCMonth() + 1).padStart(2, "0");
+      const yy = dateObj.getUTCFullYear();
+      return `${dd}/${mm}/${yy}`;
+    }
+
+    // =========================================================
+    // EXTRAÇÃO DA TABELA MASTER
+    // =========================================================
+    function buildMaster(rows) {
+      const header = rows[0].map(normalizeHeader);
+
+      function idxOf(name) {
+        const n = normalizeHeader(name);
+        const i = header.indexOf(n);
+        return i >= 0 ? i : -1;
+      }
+
+      // mapeia colunas pelo nome (flexível)
+      const cData = idxOf("data");
+      const cParado = idxOf("parado");
+      const cFunc = idxOf("funcionando");
+      const cTc = idxOf("tc medio");
+      const cPecas = idxOf("pecas fabric.");
+      const cUtil = idxOf("utilizacao de maquina");
+      const cEf5 = idxOf("eficiencia -5 dias media");
+
+      if (cData < 0) throw new Error("Coluna 'data' não encontrada no CSV.");
+
+      const out = [];
+      for (let r = 1; r < rows.length; r++) {
+        const row = rows[r];
+
+        const d = parseDDMMYYYY(row[cData]);
+        if (!d) continue;
+
+        out.push({
+          date: d,
+          dateLabel: fmtDateBR(d),
+
+          parado_s: cParado >= 0 ? parseHMS(row[cParado]) : null,
+          func_s:   cFunc  >= 0 ? parseHMS(row[cFunc])  : null,
+
+          tc_s:     cTc    >= 0 ? parseHMS(row[cTc])    : null,
+          pecas:    cPecas >= 0 ? parsePtNumber(row[cPecas]) : null,
+
+          util:     cUtil  >= 0 ? parsePtNumber(row[cUtil]) : null,   // 0..1
+          ef5:      cEf5   >= 0 ? parsePtNumber(row[cEf5])  : null    // 0..1
+        });
+      }
+
+      // ordena por data crescente
+      out.sort((a,b) => a.date.getTime() - b.date.getTime());
+
+      // últimos N dias
+      const slice = out.slice(-ULTIMOS_DIAS);
+      if (!slice.length) throw new Error("CSV não tem dados válidos (datas) para plotar.");
+
+      return slice;
+    }
+
+    // =========================================================
+    // GRÁFICOS (aqui ficam “bonitos” e sem manutenção)
+    // =========================================================
+    function hoursFromSeconds(s) {
+      return (s == null) ? null : (s / 3600);
+    }
+
+    function percent01To100(p) {
+      return (p == null) ? null : (p * 100);
+    }
+
+    const CHARTS = [
+      {
+        id: "util",
+        title: "Utilização da Máquina (%) — últimos 30 dias",
+        type: "line",
+        build: (data) => ({
+          labels: data.map(x => x.dateLabel),
+          datasets: [
+            { label: "Utilização (%)", data: data.map(x => percent01To100(x.util)), tension: 0.25, pointRadius: 2, borderWidth: 2 }
+          ]
+        }),
+        yTitle: "%"
+      },
+      {
+        id: "ef5",
+        title: "Eficiência (média 5 dias) (%) — últimos 30 dias",
+        type: "line",
+        build: (data) => ({
+          labels: data.map(x => x.dateLabel),
+          datasets: [
+            { label: "Eficiência 5d (%)", data: data.map(x => percent01To100(x.ef5)), tension: 0.25, pointRadius: 2, borderWidth: 2 }
+          ]
+        }),
+        yTitle: "%"
+      },
+      {
+        id: "pecas",
+        title: "Peças fabricadas (dia) — últimos 30 dias",
+        type: "bar",
+        build: (data) => ({
+          labels: data.map(x => x.dateLabel),
+          datasets: [
+            { label: "Peças", data: data.map(x => x.pecas), borderWidth: 1 }
+          ]
+        }),
+        yTitle: "Peças"
+      },
+      {
+        id: "tc",
+        title: "Tempo de ciclo médio (segundos) — últimos 30 dias",
+        type: "line",
+        build: (data) => ({
+          labels: data.map(x => x.dateLabel),
+          datasets: [
+            { label: "TC médio (s)", data: data.map(x => x.tc_s), tension: 0.25, pointRadius: 2, borderWidth: 2 }
+          ]
+        }),
+        yTitle: "s"
+      },
+      {
+        id: "parado_func",
+        title: "Parado vs Funcionando (horas) — últimos 30 dias",
+        type: "bar",
+        stacked: true,
+        build: (data) => ({
+          labels: data.map(x => x.dateLabel),
+          datasets: [
+            { label: "Funcionando (h)", data: data.map(x => hoursFromSeconds(x.func_s)), borderWidth: 1 },
+            { label: "Parado (h)", data: data.map(x => hoursFromSeconds(x.parado_s)), borderWidth: 1 }
+          ]
+        }),
+        yTitle: "h"
+      }
+    ];
+
+    // =========================================================
+    // PLAYER (rotação 30s)
+    // =========================================================
+    const elTitle = document.getElementById("title");
+    const elMeta  = document.getElementById("meta");
     const progress = document.getElementById("progress");
-
     const btnPrev = document.getElementById("btnPrev");
     const btnNext = document.getElementById("btnNext");
 
-    let i = 0;
-    let startTime = 0;
-    let rafId = 0;
-    let paused = false;
+    let masterData = null;
+    let idx = 0;
+    let chart = null;
 
-    function applyZoom() {
-      frame.style.transformOrigin = "center center";
-      frame.style.transform = `scale(${ZOOM})`;
-    }
+    let rafId = 0;
+    let startTime = 0;
+    let paused = false;
 
     function setProgress(fracRemaining) {
       const v = Math.max(0, Math.min(1, fracRemaining));
       progress.style.transform = `scaleX(${v})`;
     }
 
-    function makeUrl(original) {
-      const parts = original.split("#");
-      const base = parts[0];
-      const hash = parts[1] ? "#" + parts[1] : "";
-
-      const url = new URL(base);
-      url.searchParams.set("_ts", Date.now());
-
-      return url.toString() + hash;
+    function destroyChart() {
+      if (chart) { chart.destroy(); chart = null; }
     }
 
-    function renderBadge() {
-      const status = paused ? "PAUSADO" : "AUTO";
-      badge.textContent = `Gráfico ${i + 1} / ${URLS.length} • ${status} • setas ◀ ▶ • P pausa`;
+    function renderMeta() {
+      elMeta.textContent = `${idx + 1}/${CHARTS.length} • ${paused ? "PAUSADO" : "AUTO"}`;
     }
 
-    function loadCurrent() {
-      frame.src = makeUrl(URLS[i]);
-      applyZoom();
-      renderBadge();
+    function makeOptions(item) {
+      const stacked = !!item.stacked;
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: {
+            labels: { color: "#fff", font: { size: 12 } }
+          },
+          title: { display: false }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#fff", maxRotation: 0, autoSkip: true },
+            grid: { color: "rgba(255,255,255,0.08)" },
+            stacked
+          },
+          y: {
+            ticks: { color: "#fff" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+            stacked,
+            title: item.yTitle ? { display: true, text: item.yTitle, color: "rgba(255,255,255,0.85)" } : { display: false }
+          }
+        }
+      };
     }
 
     function startCycle() {
       cancelAnimationFrame(rafId);
       startTime = performance.now();
       setProgress(1);
-
-      if (!paused) {
-        rafId = requestAnimationFrame(tick);
-      } else {
-        setProgress(1);
-      }
+      if (!paused) rafId = requestAnimationFrame(tick);
     }
-
-    function goTo(index, { restartTimer = true } = {}) {
-      const n = URLS.length;
-      if (n === 0) return;
-
-      i = ((index % n) + n) % n;
-      loadCurrent();
-      if (restartTimer) startCycle();
-    }
-
-    function next({ restartTimer = true } = {}) { goTo(i + 1, { restartTimer }); }
-    function prev({ restartTimer = true } = {}) { goTo(i - 1, { restartTimer }); }
 
     function tick(now) {
       const elapsed = now - startTime;
@@ -193,52 +462,113 @@
 
       setProgress(remaining / INTERVALO_MS);
 
-      if (remaining <= 0) {
-        cancelAnimationFrame(rafId);
-        setProgress(0);
-        next({ restartTimer: true });
-        return;
-      }
+      if (remaining <= 0) { next(); return; }
       rafId = requestAnimationFrame(tick);
     }
+
+    function next() { goTo(idx + 1); }
+    function prev() { goTo(idx - 1); }
 
     function togglePause() {
       paused = !paused;
       cancelAnimationFrame(rafId);
-      renderBadge();
+      renderMeta();
       if (!paused) startCycle();
     }
 
-    // Botões (mouse e touch)
-    btnNext.addEventListener("click", () => next({ restartTimer: true }));
-    btnPrev.addEventListener("click", () => prev({ restartTimer: true }));
+    function goTo(newIdx) {
+      const n = CHARTS.length;
+      idx = ((newIdx % n) + n) % n;
+      renderCurrent();
+      startCycle();
+    }
 
-    // Melhora o toque no mobile (evita atraso)
-    btnNext.addEventListener("touchend", (e) => { e.preventDefault(); next({ restartTimer: true }); }, { passive:false });
-    btnPrev.addEventListener("touchend", (e) => { e.preventDefault(); prev({ restartTimer: true }); }, { passive:false });
+    function renderCurrent() {
+      hideMessage();
 
-    // Teclas
+      const item = CHARTS[idx];
+      elTitle.textContent = item.title;
+      renderMeta();
+
+      const ctx = document.getElementById("chart").getContext("2d");
+      const built = item.build(masterData);
+
+      destroyChart();
+
+      chart = new Chart(ctx, {
+        type: item.type,
+        data: built,
+        options: makeOptions(item)
+      });
+    }
+
+    btnNext.addEventListener("click", () => next());
+    btnPrev.addEventListener("click", () => prev());
+
+    // Swipe (TV box touch / celular)
+    let sx = 0, sy = 0, started = false;
+    window.addEventListener("touchstart", (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      started = true;
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener("touchend", (e) => {
+      if (!started) return;
+      started = false;
+
+      const t = e.changedTouches[0];
+      const dx = t.clientX - sx;
+      const dy = t.clientY - sy;
+
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+      if (dx < 0) next();
+      else prev();
+    }, { passive: true });
+
+    // Teclado/controle
     window.addEventListener("keydown", (e) => {
-      const key = e.key;
-      const blockKeys = ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," ","PageUp","PageDown","Home","End","Backspace"];
-      if (blockKeys.includes(key)) e.preventDefault();
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") next();
+      else if (e.key === "ArrowLeft" || e.key === "Backspace" || e.key === "PageUp") prev();
+      else if (e.key === "p" || e.key === "P") togglePause();
+    });
 
-      if (key === "ArrowRight" || key === "ArrowDown" || key === "PageDown" || key === " ") {
-        next({ restartTimer: true });
-      } else if (key === "ArrowLeft" || key === "ArrowUp" || key === "PageUp" || key === "Backspace") {
-        prev({ restartTimer: true });
-      } else if (key === "Home") {
-        goTo(0, { restartTimer: true });
-      } else if (key === "End") {
-        goTo(URLS.length - 1, { restartTimer: true });
-      } else if (key === "p" || key === "P") {
-        togglePause();
+    // =========================================================
+    // BOOT
+    // =========================================================
+    async function boot() {
+      try {
+        elTitle.textContent = "Carregando dados…";
+        renderMeta();
+
+        // evita cache agressivo
+        const u = new URL(CSV_URL);
+        u.searchParams.set("_", Date.now().toString());
+
+        const resp = await fetch(u.toString(), { cache: "no-store" });
+        if (!resp.ok) throw new Error(`Falha ao buscar CSV (${resp.status})`);
+
+        const text = await resp.text();
+        const rows = parseCSV(text);
+
+        masterData = buildMaster(rows);
+
+        // se alguma coluna estiver faltando, ainda roda — mas alguns gráficos podem ficar vazios
+        renderCurrent();
+        startCycle();
+
+      } catch (err) {
+        destroyChart();
+        showMessage(
+          "Não consegui carregar os dados do Google Sheets.\n\n" +
+          "Verifique se a planilha está 'Publicada na Web' e se o link CSV está correto.\n\n" +
+          "Erro: " + err.message
+        );
       }
-    }, { passive: false });
+    }
 
-    // Start
-    loadCurrent();
-    startCycle();
+    boot();
   </script>
 </body>
 </html>
