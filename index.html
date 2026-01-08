@@ -3,92 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mota Dash TV – V2 (Labels)</title>
+  <title>Mota Dash TV – Multi Links</title>
 
   <style>
-    html,body{
-      height:100%;
-      margin:0;
-      background:#05070c;
-      color:#eaeaf0;
-      font-family: Inter, Arial, sans-serif;
-      overflow:hidden;
-    }
-    #app{
-      position:fixed; inset:0;
-      display:flex; flex-direction:column;
-    }
-    #header{
-      padding:16px 20px 10px;
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-end;
-      gap:14px;
-      background: rgba(0,0,0,0.35);
-      backdrop-filter: blur(6px);
-    }
-    #title{
-      font-size:22px;
-      font-weight:800;
-      letter-spacing: .2px;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      max-width: 72vw;
-    }
-    #meta{
-      font-size:13px;
-      opacity:.78;
-      white-space: nowrap;
-    }
-
-    #chartWrap{ position:relative; flex:1; min-height:0; }
-    #chart{ position:absolute; inset:0; }
-
-    #msg{
-      position:absolute; inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:26px;
-      white-space: pre-wrap;
-      background: rgba(0,0,0,0.72);
-      z-index: 9;
-      font-size: 14px;
-      line-height: 1.35;
-    }
-
-    #progressWrap{
-      height:6px;
-      background:rgba(255,255,255,.12);
-    }
-    #progress{
-      height:100%;
-      width:100%;
-      background: linear-gradient(90deg, #4f7cff, #24d3ee);
-      transform-origin:left;
-      transform:scaleX(1);
-    }
-
-    .nav-btn{
-      position:fixed;
-      bottom:12px;
-      width:54px; height:54px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,0.16);
-      background: rgba(0,0,0,0.35);
-      color: rgba(255,255,255,0.92);
-      font: 26px Arial, sans-serif;
-      line-height:54px;
-      text-align:center;
-      z-index: 20;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .nav-btn:active{ transform: scale(.96); }
-    #prev{ left:12px; }
-    #next{ right:12px; }
+    html,body{height:100%;margin:0;background:#05070c;color:#eaeaf0;font-family:Inter,Arial,sans-serif;overflow:hidden;}
+    #app{position:fixed;inset:0;display:flex;flex-direction:column;}
+    #header{padding:16px 20px 10px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);}
+    #title{font-size:22px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68vw;}
+    #meta{font-size:13px;opacity:.78;white-space:nowrap;text-align:right;}
+    #chartWrap{position:relative;flex:1;min-height:0;}
+    #chart{position:absolute;inset:0;}
+    #msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:26px;white-space:pre-wrap;background:rgba(0,0,0,.72);z-index:9;font-size:14px;line-height:1.35;}
+    #progressWrap{height:6px;background:rgba(255,255,255,.12);}
+    #progress{height:100%;width:100%;background:linear-gradient(90deg,#4f7cff,#24d3ee);transform-origin:left;transform:scaleX(1);}
+    .nav-btn{position:fixed;bottom:12px;width:54px;height:54px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.35);color:rgba(255,255,255,.92);font:26px Arial,sans-serif;line-height:54px;text-align:center;z-index:20;user-select:none;-webkit-tap-highlight-color:transparent;}
+    .nav-btn:active{transform:scale(.96);}
+    #prev{left:12px;} #next{right:12px;}
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
@@ -100,12 +30,10 @@
     <div id="title">Carregando…</div>
     <div id="meta"></div>
   </div>
-
   <div id="chartWrap">
     <div id="chart"></div>
     <div id="msg"></div>
   </div>
-
   <div id="progressWrap"><div id="progress"></div></div>
 </div>
 
@@ -116,8 +44,17 @@
 /* =========================
    CONFIG
 ========================= */
-const CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdQuoLLALTl3wLHHfrpuZAZkFybA4qRdGNExiE1tMT6LDJC2_j-fhS0Jzlv5NInYxbHaxNLI0CMggw/pub?gid=806509342&single=true&output=csv";
+const SOURCES = [
+  {
+    name: "ESP TEST (Tabela Master)",
+    csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdQuoLLALTl3wLHHfrpuZAZkFybA4qRdGNExiE1tMT6LDJC2_j-fhS0Jzlv5NInYxbHaxNLI0CMggw/pub?gid=806509342&single=true&output=csv"
+  },
+  {
+    name: "Link 2 (ajuste o gid se necessário)",
+    // ✅ use /pub (não pubhtml) quando quiser CSV
+    csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSePvDhgfqtEf49n0yzoxCYmzR53HTyvrJQ9a4gf8T03-cpkSPoH1rwlACeeDVeLpMIqmnHDJnHU4wY/pub?gid=806509342&single=true&output=csv"
+  }
+];
 
 const LAST_DAYS = 30;
 const INTERVAL_MS = 30_000;
@@ -129,141 +66,84 @@ const elTitle = document.getElementById("title");
 const elMeta  = document.getElementById("meta");
 const elMsg   = document.getElementById("msg");
 const elProg  = document.getElementById("progress");
-
-function showMsg(txt){
-  elMsg.style.display = "flex";
-  elMsg.textContent = txt;
-}
-function hideMsg(){
-  elMsg.style.display = "none";
-  elMsg.textContent = "";
-}
+function showMsg(txt){ elMsg.style.display="flex"; elMsg.textContent=txt; }
+function hideMsg(){ elMsg.style.display="none"; elMsg.textContent=""; }
 
 /* =========================
    CSV parser (aspas)
 ========================= */
 function parseCSV(text){
-  const rows = [];
-  let row = [];
-  let cur = "";
-  let inQuotes = false;
-
-  for (let i=0; i<text.length; i++){
-    const c = text[i];
-    const next = text[i+1];
-
-    if (c === '"' && inQuotes && next === '"') { cur += '"'; i++; continue; }
-    if (c === '"') { inQuotes = !inQuotes; continue; }
-
-    if (!inQuotes && (c === "\n" || c === "\r")){
-      if (c === "\r" && next === "\n") i++;
-      row.push(cur);
-      rows.push(row);
-      row = [];
-      cur = "";
-      continue;
+  const rows=[]; let row=[]; let cur=""; let inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], next=text[i+1];
+    if(c==='"' && inQuotes && next==='"'){ cur+='"'; i++; continue; }
+    if(c==='"'){ inQuotes=!inQuotes; continue; }
+    if(!inQuotes && (c==="\n"||c==="\r")){
+      if(c==="\r" && next==="\n") i++;
+      row.push(cur); rows.push(row); row=[]; cur=""; continue;
     }
-
-    if (!inQuotes && c === ","){
-      row.push(cur);
-      cur = "";
-      continue;
-    }
-
-    cur += c;
+    if(!inQuotes && c===","){ row.push(cur); cur=""; continue; }
+    cur+=c;
   }
-
-  if (cur.length || row.length){
-    row.push(cur);
-    rows.push(row);
-  }
-
-  return rows.filter(r => r.some(x => String(x ?? "").trim() !== ""));
+  if(cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => String(x??"").trim()!==""));
 }
-
 function normHeader(s){
-  return String(s ?? "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return String(s??"").trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^\w\s]/g," ").replace(/\s+/g," ").trim();
 }
-
 function parsePercentOrNumber(v){
-  const s = String(v ?? "").trim();
-  if (!s) return null;
-
-  if (s.endsWith("%")){
-    const raw = s.slice(0, -1).trim();
-    const n = parsePercentOrNumber(raw);
-    return (n == null) ? null : n; // em "pontos percentuais"
+  const s=String(v??"").trim(); if(!s) return null;
+  if(s.endsWith("%")){
+    const raw=s.slice(0,-1).trim();
+    const n=parsePercentOrNumber(raw);
+    return n==null?null:n; // pontos percentuais (ex 59.99)
   }
-
-  const norm = s.replace(/\./g, "").replace(",", ".");
-  const n = Number(norm);
-  return Number.isFinite(n) ? n : null;
+  const norm=s.replace(/\./g,"").replace(",",".");
+  const n=Number(norm);
+  return Number.isFinite(n)?n:null;
 }
-
 function parseDDMMYYYY(v){
-  const s = String(v ?? "").trim();
-  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return null;
-  const dd = +m[1], mm = +m[2], yyyy = +m[3];
-  return new Date(Date.UTC(yyyy, mm-1, dd, 12, 0, 0));
+  const s=String(v??"").trim();
+  const m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m) return null;
+  return new Date(Date.UTC(+m[3], +m[2]-1, +m[1], 12,0,0));
 }
-
 function parseHMS(v){
-  const s = String(v ?? "").trim();
-  const m = s.match(/^(\d{1,3}):(\d{2}):(\d{2})$/);
-  if (!m) return null;
-  const hh = +m[1], mm = +m[2], ss = +m[3];
-  if (![hh,mm,ss].every(Number.isFinite)) return null;
-  return hh*3600 + mm*60 + ss;
+  const s=String(v??"").trim();
+  const m=s.match(/^(\d{1,3}):(\d{2}):(\d{2})$/);
+  if(!m) return null;
+  const hh=+m[1], mm=+m[2], ss=+m[3];
+  if(![hh,mm,ss].every(Number.isFinite)) return null;
+  return hh*3600+mm*60+ss;
 }
-
 function fmtDateShort(d){
-  const dd = String(d.getUTCDate()).padStart(2,"0");
-  const mm = String(d.getUTCMonth()+1).padStart(2,"0");
+  const dd=String(d.getUTCDate()).padStart(2,"0");
+  const mm=String(d.getUTCMonth()+1).padStart(2,"0");
   return `${dd}/${mm}`;
 }
-
-function fmtInt(n){
-  if (n == null) return "";
-  return Math.round(n).toLocaleString("pt-BR");
-}
-function fmt1(n){
-  if (n == null) return "";
-  return (Math.round(n*10)/10).toLocaleString("pt-BR");
-}
-function fmt2(n){
-  if (n == null) return "";
-  return (Math.round(n*100)/100).toLocaleString("pt-BR");
-}
+function fmtInt(n){ return (n==null) ? "" : Math.round(n).toLocaleString("pt-BR"); }
+function fmt1(n){ return (n==null) ? "" : (Math.round(n*10)/10).toLocaleString("pt-BR"); }
+function fmt2(n){ return (n==null) ? "" : (Math.round(n*100)/100).toLocaleString("pt-BR"); }
 
 /* =========================
-   MASTER
+   LOAD MASTER per SOURCE
 ========================= */
-let MASTER = [];
-
-async function loadMaster(){
-  const u = new URL(CSV_URL);
+async function loadMasterFrom(csvUrl){
+  const u=new URL(csvUrl);
   u.searchParams.set("_", Date.now().toString());
+  const resp=await fetch(u.toString(), {cache:"no-store"});
+  if(!resp.ok) throw new Error(`Falha ao buscar CSV (${resp.status})`);
+  const text=await resp.text();
+  const rows=parseCSV(text);
+  if(rows.length<2) throw new Error("CSV vazio.");
 
-  const resp = await fetch(u.toString(), { cache: "no-store" });
-  if (!resp.ok) throw new Error(`Falha ao buscar CSV (${resp.status})`);
-
-  const text = await resp.text();
-  const rows = parseCSV(text);
-  if (rows.length < 2) throw new Error("CSV veio vazio ou sem linhas suficientes.");
-
-  const header = rows[0].map(normHeader);
-
+  const header=rows[0].map(normHeader);
   function colIndex(...aliases){
-    for (const a of aliases){
-      const i = header.indexOf(normHeader(a));
-      if (i >= 0) return i;
+    for(const a of aliases){
+      const i=header.indexOf(normHeader(a));
+      if(i>=0) return i;
     }
     return -1;
   }
@@ -276,317 +156,274 @@ async function loadMaster(){
   const cUtil  = colIndex("utilizacao de maquina", "utilizacao maquina", "utilizacao");
   const cEf5   = colIndex("eficiencia -5 dias media", "eficiencia 5 dias media", "eficiencia 5 dias");
 
-  if (cData < 0) throw new Error("Coluna 'data' não encontrada no cabeçalho do CSV.");
+  if(cData<0) throw new Error("Coluna 'data' não encontrada.");
 
-  const out = [];
-  for (let r=1; r<rows.length; r++){
-    const row = rows[r];
+  const out=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r];
+    const d=parseDDMMYYYY(row[cData]);
+    if(!d) continue;
 
-    const d = parseDDMMYYYY(row[cData]);
-    if (!d) continue;
-
-    const parado_s = cPar  >= 0 ? parseHMS(row[cPar])  : null;
-    const func_s   = cFunc >= 0 ? parseHMS(row[cFunc]) : null;
+    const parado_s = cPar>=0 ? parseHMS(row[cPar]) : null;
+    const func_s   = cFunc>=0? parseHMS(row[cFunc]): null;
 
     out.push({
-      date: d,
-      label: fmtDateShort(d),
-      util:  cUtil  >= 0 ? parsePercentOrNumber(row[cUtil]) : null, // %
-      ef5:   cEf5   >= 0 ? parsePercentOrNumber(row[cEf5])  : null, // %
-      pecas: cPecas >= 0 ? parsePercentOrNumber(row[cPecas]) : null,
-      tc_s:  cTC    >= 0 ? parseHMS(row[cTC]) : null,
-      func_h: (func_s == null ? null : func_s/3600),
-      parado_h: (parado_s == null ? null : parado_s/3600),
+      date:d,
+      label:fmtDateShort(d),
+      util:  cUtil>=0 ? parsePercentOrNumber(row[cUtil]) : null,
+      ef5:   cEf5>=0  ? parsePercentOrNumber(row[cEf5])  : null,
+      pecas: cPecas>=0? parsePercentOrNumber(row[cPecas]): null,
+      tc_s:  cTC>=0   ? parseHMS(row[cTC])               : null,
+      func_h: (func_s==null?null:func_s/3600),
+      parado_h: (parado_s==null?null:parado_s/3600),
     });
   }
 
-  out.sort((a,b) => a.date.getTime() - b.date.getTime());
-  MASTER = out.slice(-LAST_DAYS);
-
-  if (!MASTER.length) throw new Error("Não encontrei linhas válidas com data (dd/mm/aaaa).");
+  out.sort((a,b)=>a.date.getTime()-b.date.getTime());
+  const sliced = out.slice(-LAST_DAYS);
+  if(!sliced.length) throw new Error("Sem dados válidos de data.");
+  return sliced;
 }
 
 /* =========================
-   ECHARTS
+   ECHARTS helpers
 ========================= */
-let chart = null;
-
-function baseOption(){
+function baseOption(master){
   return {
-    backgroundColor: "transparent",
-    animation: true,
-    animationDuration: 650,
-    animationEasing: "cubicOut",
-    textStyle: { color: "#eaeaf0" },
-    grid: { left: 56, right: 18, top: 36, bottom: 44 },
-    tooltip: {
-      trigger: "axis",
-      backgroundColor: "rgba(10,14,25,0.92)",
-      borderColor: "rgba(255,255,255,0.08)",
-      borderWidth: 1,
-      textStyle: { color: "#fff" },
-      axisPointer: { type: "line" }
+    backgroundColor:"transparent",
+    animation:true,
+    animationDuration:650,
+    animationEasing:"cubicOut",
+    textStyle:{color:"#eaeaf0"},
+    grid:{left:56,right:18,top:36,bottom:44},
+    tooltip:{
+      trigger:"axis",
+      backgroundColor:"rgba(10,14,25,0.92)",
+      borderColor:"rgba(255,255,255,0.08)",
+      borderWidth:1,
+      textStyle:{color:"#fff"},
+      axisPointer:{type:"line"}
     },
-    xAxis: {
-      type: "category",
-      data: MASTER.map(x => x.label),
-      axisLine: { lineStyle: { color: "rgba(255,255,255,0.18)" } },
-      axisTick: { show: false },
-      axisLabel: { color: "rgba(255,255,255,0.72)" }
+    xAxis:{
+      type:"category",
+      data:master.map(x=>x.label),
+      axisLine:{lineStyle:{color:"rgba(255,255,255,0.18)"}},
+      axisTick:{show:false},
+      axisLabel:{color:"rgba(255,255,255,0.72)"}
     },
-    yAxis: {
-      type: "value",
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { color: "rgba(255,255,255,0.72)" },
-      splitLine: { lineStyle: { color: "rgba(255,255,255,0.06)" } }
+    yAxis:{
+      type:"value",
+      axisLine:{show:false},
+      axisTick:{show:false},
+      axisLabel:{color:"rgba(255,255,255,0.72)"},
+      splitLine:{lineStyle:{color:"rgba(255,255,255,0.06)"}}
     }
   };
 }
-
-function gradientArea(colorTop="rgba(79,124,255,0.35)", colorBottom="rgba(79,124,255,0.03)"){
+function gradientArea(top, bottom){
   return new echarts.graphic.LinearGradient(0,0,0,1,[
-    { offset: 0, color: colorTop },
-    { offset: 1, color: colorBottom }
+    {offset:0,color:top},{offset:1,color:bottom}
   ]);
 }
-
-// Label “limpo” para linhas: só no último ponto
-function lineEndLabel(formatterFn){
+function lineEndLabel(master, fmtFn, suffix=""){
   return {
-    show: true,
-    position: "top",
-    distance: 6,
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 13,
-    fontWeight: 700,
-    formatter: (p) => {
-      const idx = p.dataIndex;
-      const last = MASTER.length - 1;
-      if (idx !== last) return "";
-      return formatterFn(p.value);
-    }
+    show:true, position:"top", distance:6,
+    color:"rgba(255,255,255,0.92)", fontSize:13, fontWeight:700,
+    formatter:(p)=> (p.dataIndex===master.length-1) ? `${fmtFn(p.value)}${suffix}` : ""
   };
 }
-
-// Label para barras: em cima de cada barra
-function barTopLabel(formatterFn){
-  return {
-    show: true,
-    position: "top",
-    color: "rgba(255,255,255,0.90)",
-    fontSize: 12,
-    fontWeight: 700,
-    formatter: (p) => formatterFn(p.value)
-  };
+function barTopLabel(fmtFn, suffix=""){
+  return {show:true, position:"top", color:"rgba(255,255,255,0.90)", fontSize:12, fontWeight:700,
+    formatter:(p)=> `${fmtFn(p.value)}${suffix}` };
 }
-
-// Label para empilhado: no meio de cada segmento
-function stackInsideLabel(formatterFn){
-  return {
-    show: true,
-    position: "inside",
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 12,
-    fontWeight: 700,
-    formatter: (p) => formatterFn(p.value)
-  };
+function stackInsideLabel(fmtFn, suffix=""){
+  return {show:true, position:"inside", color:"rgba(255,255,255,0.92)", fontSize:12, fontWeight:700,
+    formatter:(p)=> `${fmtFn(p.value)}${suffix}` };
 }
 
 /* =========================
-   SCREENS
+   5 gráficos por fonte (template)
 ========================= */
-const SCREENS = [
-  {
-    key: "util",
-    title: "Utilização da Máquina (%) — últimos 30 dias",
-    render: () => {
-      const opt = baseOption();
-      opt.yAxis.min = 0;
-      opt.yAxis.max = 100;
-      opt.series = [{
-        name: "Utilização (%)",
-        type: "line",
-        smooth: true,
-        showSymbol: false,
-        connectNulls: true,
-        lineStyle: { width: 3 },
-        areaStyle: { color: gradientArea("rgba(79,124,255,0.33)", "rgba(79,124,255,0.03)") },
-        label: lineEndLabel(v => `${fmt2(v)}%`),
-        data: MASTER.map(x => x.util)
-      }];
-      return opt;
+function buildFiveScreensForSource(sourceIndex){
+  const src = SOURCES[sourceIndex];
+  const master = DATA_BY_SOURCE[sourceIndex];
+
+  return [
+    {
+      title: `${src.name} • Utilização da Máquina (%)`,
+      option: () => {
+        const opt = baseOption(master);
+        opt.yAxis.min=0; opt.yAxis.max=100;
+        opt.series=[{
+          name:"Utilização (%)",
+          type:"line", smooth:true, showSymbol:false, connectNulls:true,
+          lineStyle:{width:3},
+          areaStyle:{color:gradientArea("rgba(79,124,255,0.33)","rgba(79,124,255,0.03)")},
+          label: lineEndLabel(master, fmt2, "%"),
+          data: master.map(x=>x.util)
+        }];
+        return opt;
+      }
+    },
+    {
+      title: `${src.name} • Eficiência (média 5 dias) (%)`,
+      option: () => {
+        const opt = baseOption(master);
+        opt.yAxis.min=0; opt.yAxis.max=100;
+        opt.series=[{
+          name:"Eficiência 5d (%)",
+          type:"line", smooth:true, showSymbol:false, connectNulls:true,
+          lineStyle:{width:3},
+          areaStyle:{color:gradientArea("rgba(36,211,238,0.28)","rgba(36,211,238,0.03)")},
+          label: lineEndLabel(master, fmt2, "%"),
+          data: master.map(x=>x.ef5)
+        }];
+        return opt;
+      }
+    },
+    {
+      title: `${src.name} • Peças produzidas (dia)`,
+      option: () => {
+        const opt = baseOption(master);
+        opt.series=[{
+          name:"Peças",
+          type:"bar", barWidth:"55%",
+          itemStyle:{
+            borderRadius:[10,10,0,0],
+            color:new echarts.graphic.LinearGradient(0,0,0,1,[
+              {offset:0,color:"rgba(79,124,255,0.95)"},
+              {offset:1,color:"rgba(79,124,255,0.25)"}
+            ])
+          },
+          label: barTopLabel(fmtInt),
+          data: master.map(x=>x.pecas)
+        }];
+        return opt;
+      }
+    },
+    {
+      title: `${src.name} • Tempo de ciclo médio (s)`,
+      option: () => {
+        const opt = baseOption(master);
+        opt.series=[{
+          name:"TC médio (s)",
+          type:"line", smooth:true, showSymbol:false, connectNulls:true,
+          lineStyle:{width:3,color:"rgba(255,255,255,0.85)"},
+          label: lineEndLabel(master, fmtInt, "s"),
+          data: master.map(x=>x.tc_s)
+        }];
+        return opt;
+      }
+    },
+    {
+      title: `${src.name} • Parado vs Funcionando (h)`,
+      option: () => {
+        const opt = baseOption(master);
+        opt.legend={top:6,textStyle:{color:"rgba(255,255,255,0.78)"}};
+        opt.yAxis.min=0;
+        opt.series=[
+          {name:"Funcionando (h)", type:"bar", stack:"total", barWidth:"55%",
+           itemStyle:{borderRadius:[10,10,0,0],color:"rgba(36,211,238,0.85)"},
+           label: stackInsideLabel(fmt1,"h"),
+           data: master.map(x=>x.func_h)},
+          {name:"Parado (h)", type:"bar", stack:"total", barWidth:"55%",
+           itemStyle:{borderRadius:[10,10,0,0],color:"rgba(255,99,132,0.72)"},
+           label: stackInsideLabel(fmt1,"h"),
+           data: master.map(x=>x.parado_h)}
+        ];
+        return opt;
+      }
     }
-  },
-  {
-    key: "ef5",
-    title: "Eficiência (média 5 dias) (%) — últimos 30 dias",
-    render: () => {
-      const opt = baseOption();
-      opt.yAxis.min = 0;
-      opt.yAxis.max = 100;
-      opt.series = [{
-        name: "Eficiência 5d (%)",
-        type: "line",
-        smooth: true,
-        showSymbol: false,
-        connectNulls: true,
-        lineStyle: { width: 3 },
-        areaStyle: { color: gradientArea("rgba(36,211,238,0.28)", "rgba(36,211,238,0.03)") },
-        label: lineEndLabel(v => `${fmt2(v)}%`),
-        data: MASTER.map(x => x.ef5)
-      }];
-      return opt;
-    }
-  },
-  {
-    key: "pecas",
-    title: "Peças produzidas (dia) — últimos 30 dias",
-    render: () => {
-      const opt = baseOption();
-      opt.series = [{
-        name: "Peças",
-        type: "bar",
-        barWidth: "55%",
-        itemStyle: {
-          borderRadius: [10,10,0,0],
-          color: new echarts.graphic.LinearGradient(0,0,0,1,[
-            { offset: 0, color: "rgba(79,124,255,0.95)" },
-            { offset: 1, color: "rgba(79,124,255,0.25)" }
-          ])
-        },
-        label: barTopLabel(v => fmtInt(v)),
-        data: MASTER.map(x => x.pecas)
-      }];
-      return opt;
-    }
-  },
-  {
-    key: "tc",
-    title: "Tempo de ciclo médio (segundos) — últimos 30 dias",
-    render: () => {
-      const opt = baseOption();
-      opt.series = [{
-        name: "TC médio (s)",
-        type: "line",
-        smooth: true,
-        showSymbol: false,
-        connectNulls: true,
-        lineStyle: { width: 3, color: "rgba(255,255,255,0.85)" },
-        label: lineEndLabel(v => `${fmtInt(v)}s`),
-        data: MASTER.map(x => x.tc_s)
-      }];
-      return opt;
-    }
-  },
-  {
-    key: "parado_func",
-    title: "Parado vs Funcionando (horas) — últimos 30 dias",
-    render: () => {
-      const opt = baseOption();
-      opt.legend = {
-        top: 6,
-        textStyle: { color: "rgba(255,255,255,0.78)" }
-      };
-      opt.yAxis.min = 0;
-      opt.series = [
-        {
-          name: "Funcionando (h)",
-          type: "bar",
-          stack: "total",
-          barWidth: "55%",
-          itemStyle: { borderRadius: [10,10,0,0], color: "rgba(36,211,238,0.85)" },
-          label: stackInsideLabel(v => `${fmt1(v)}h`),
-          data: MASTER.map(x => x.func_h)
-        },
-        {
-          name: "Parado (h)",
-          type: "bar",
-          stack: "total",
-          barWidth: "55%",
-          itemStyle: { borderRadius: [10,10,0,0], color: "rgba(255,99,132,0.72)" },
-          label: stackInsideLabel(v => `${fmt1(v)}h`),
-          data: MASTER.map(x => x.parado_h)
-        }
-      ];
-      return opt;
-    }
-  }
-];
+  ];
+}
 
 /* =========================
-   PLAYER
+   PLAYER (N fontes x 5 telas)
 ========================= */
-let screenIdx = 0;
-let startT = 0;
+let chart=null;
+let startT=0;
+let screenIdx=0;
+
+let DATA_BY_SOURCE = [];   // array de masterData por fonte
+let SCREENS = [];          // array linear: {title, option()}
 
 function setHeader(){
   const s = SCREENS[screenIdx];
   elTitle.textContent = s.title;
-  elMeta.textContent = `${screenIdx+1}/${SCREENS.length} • AUTO • ${MASTER.length} dias`;
+  elMeta.textContent = `${screenIdx+1}/${SCREENS.length} • ${SOURCES.length} links • ${LAST_DAYS} dias`;
 }
 
 function render(){
   hideMsg();
   setHeader();
-  const opt = SCREENS[screenIdx].render();
-  chart.setOption(opt, true);
-  startT = performance.now();
+  chart.setOption(SCREENS[screenIdx].option(), true);
+  startT=performance.now();
 }
 
 function tick(now){
   const remaining = INTERVAL_MS - (now - startT);
   const frac = Math.max(0, Math.min(1, remaining / INTERVAL_MS));
   elProg.style.transform = `scaleX(${frac})`;
-
-  if (remaining <= 0){
-    screenIdx = (screenIdx + 1) % SCREENS.length;
+  if(remaining<=0){
+    screenIdx = (screenIdx+1) % SCREENS.length;
     render();
   }
   requestAnimationFrame(tick);
 }
 
 function next(){
-  screenIdx = (screenIdx + 1) % SCREENS.length;
+  screenIdx = (screenIdx+1) % SCREENS.length;
   render();
 }
 function prev(){
-  screenIdx = (screenIdx - 1 + SCREENS.length) % SCREENS.length;
+  screenIdx = (screenIdx-1 + SCREENS.length) % SCREENS.length;
   render();
 }
-
 document.getElementById("next").addEventListener("click", next);
 document.getElementById("prev").addEventListener("click", prev);
-
-window.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") next();
-  else if (e.key === "ArrowLeft" || e.key === "Backspace" || e.key === "PageUp") prev();
-});
 
 /* =========================
    BOOT
 ========================= */
 (async ()=>{
   try{
-    elTitle.textContent = "Carregando dados do Sheets…";
-    elMeta.textContent = "Aguarde";
+    elTitle.textContent="Carregando dados (multi links)…";
+    elMeta.textContent="Aguarde";
 
-    await loadMaster();
+    // Carrega todas as fontes (em sequência, mais confiável pra TV box)
+    DATA_BY_SOURCE = [];
+    for(let i=0;i<SOURCES.length;i++){
+      const m = await loadMasterFrom(SOURCES[i].csvUrl);
+      DATA_BY_SOURCE.push(m);
+    }
 
-    chart = echarts.init(document.getElementById("chart"), null, { renderer: "canvas" });
-    window.addEventListener("resize", () => chart.resize());
+    // Monta roteiro: para cada fonte, adiciona 5 telas
+    SCREENS = [];
+    for(let i=0;i<SOURCES.length;i++){
+      SCREENS.push(...buildFiveScreensForSource(i));
+    }
+
+    chart = echarts.init(document.getElementById("chart"), null, {renderer:"canvas"});
+    window.addEventListener("resize", ()=>chart.resize());
 
     render();
     requestAnimationFrame(tick);
 
+    // Teclado/controle
+    window.addEventListener("keydown", (e)=>{
+      if(e.key==="ArrowRight" || e.key===" " || e.key==="PageDown") next();
+      else if(e.key==="ArrowLeft" || e.key==="Backspace" || e.key==="PageUp") prev();
+    });
+
   }catch(err){
     showMsg(
-      "Não consegui montar os gráficos.\n\n" +
-      "Erro: " + err.message + "\n\n" +
-      "Dica: confirme se a planilha está 'Publicada na web' e se o CSV mantém o cabeçalho."
+      "Erro ao carregar um ou mais links.\n\n" +
+      "Verifique se TODOS os links são CSV no formato /pub?…&output=csv\n" +
+      "e se a aba está publicada.\n\n" +
+      "Erro: " + err.message
     );
-    elTitle.textContent = "Erro ao carregar";
-    elMeta.textContent = "Verifique a planilha";
+    elTitle.textContent="Erro";
+    elMeta.textContent="Confira os links";
   }
 })();
 </script>
