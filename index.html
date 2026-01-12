@@ -19,9 +19,11 @@
     .nav-btn{position:fixed;bottom:12px;width:54px;height:54px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.35);color:rgba(255,255,255,.92);font:26px Arial,sans-serif;line-height:54px;text-align:center;z-index:20;user-select:none;-webkit-tap-highlight-color:transparent;}
     .nav-btn:active{transform:scale(.96);}
     #prev{left:12px;} #next{right:12px;}
+    #perfIndicator{position:fixed;top:10px;right:10px;padding:4px 10px;background:rgba(0,0,0,.6);border-radius:12px;font-size:11px;z-index:25;opacity:.7;}
+    .perf-low{color:#ff6b6b;} .perf-high{color:#51cf66;}
   </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 </head>
 
 <body>
@@ -39,8 +41,42 @@
 
 <div class="nav-btn" id="prev" title="Anterior">◀</div>
 <div class="nav-btn" id="next" title="Próximo">▶</div>
+<div id="perfIndicator"></div>
 
 <script>
+/* =========================
+   DETECÇÃO DE PERFORMANCE
+========================= */
+function detectPerformanceMode(){
+  const checks = {
+    lowMemory: navigator.deviceMemory && navigator.deviceMemory <= 4,
+    lowCores: navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2,
+    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+    isTVBox: /TV|SmartTV|AFTT|AFTM|AFTB|AFT/i.test(navigator.userAgent),
+    slowConnection: navigator.connection && (navigator.connection.effectiveType === 'slow-2g' || navigator.connection.effectiveType === '2g')
+  };
+  
+  // Se detectar qualquer sinal de hardware limitado, usa modo de baixa performance
+  const isLowPerf = checks.lowMemory || checks.lowCores || checks.isTVBox || checks.slowConnection;
+  
+  return {
+    mode: isLowPerf ? 'low' : 'high',
+    details: checks
+  };
+}
+
+const PERF = detectPerformanceMode();
+
+// Mostrar indicador de modo
+const perfIndicator = document.getElementById('perfIndicator');
+if(PERF.mode === 'low'){
+  perfIndicator.className = 'perf-low';
+  perfIndicator.textContent = '⚡ Modo Otimizado';
+} else {
+  perfIndicator.className = 'perf-high';
+  perfIndicator.textContent = '🚀 Modo Performance';
+}
+
 /* =========================
    CONFIG
 ========================= */
@@ -53,13 +89,11 @@ const SOURCES = [
     name: "Corte",
     csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnL9qLyOpMIB4Sko6Dk0Vz1sRgdUhCy9bVz1Kd30dmAjqOlxxwpCO2yVcV9dX8wVWW9OrhdMbEc4jT/pub?gid=279273967&single=true&output=csv"
   },
-
 ];
 
-
-  
-const LAST_DAYS = 30;
-const INTERVAL_MS = 30_000;
+// Configurações adaptativas baseadas em performance
+const LAST_DAYS = PERF.mode === 'low' ? 15 : 30;
+const INTERVAL_MS = PERF.mode === 'low' ? 45_000 : 30_000;
 
 /* =========================
    UI
@@ -103,7 +137,7 @@ function parsePercentOrNumber(v){
   if(s.endsWith("%")){
     const raw=s.slice(0,-1).trim();
     const n=parsePercentOrNumber(raw);
-    return n==null?null:n; // pontos percentuais (ex 59.99)
+    return n==null?null:n;
   }
   const norm=s.replace(/\./g,"").replace(",",".");
   const n=Number(norm);
@@ -195,14 +229,16 @@ async function loadMasterFrom(csvUrl){
 }
 
 /* =========================
-   ECHARTS helpers
+   ECHARTS helpers (ADAPTATIVO)
 ========================= */
 function baseOption(master){
+  const isLowPerf = PERF.mode === 'low';
+  
   return {
     backgroundColor:"transparent",
-    animation:true,
-    animationDuration:1200,
-    animationEasing:"cubicOut",
+    animation: !isLowPerf,
+    animationDuration: isLowPerf ? 0 : 1200,
+    animationEasing: isLowPerf ? "linear" : "cubicOut",
     textStyle:{color:"#eaeaf0"},
     grid:{left:56,right:18,top:36,bottom:44},
     tooltip:{
@@ -231,6 +267,20 @@ function baseOption(master){
 }
 
 function gradientArea(top, bottom){
+  if(PERF.mode === 'low'){
+    // Modo otimizado: cor sólida ao invés de gradiente
+    return top.replace(/[\d.]+\)$/, '0.2)'); // reduz opacidade
+  }
+  // Modo high performance: gradiente completo
+  return new echarts.graphic.LinearGradient(0,0,0,1,[
+    {offset:0,color:top},{offset:1,color:bottom}
+  ]);
+}
+
+function gradientBar(top, bottom){
+  if(PERF.mode === 'low'){
+    return top; // cor sólida
+  }
   return new echarts.graphic.LinearGradient(0,0,0,1,[
     {offset:0,color:top},{offset:1,color:bottom}
   ]);
@@ -244,7 +294,6 @@ function lineEndLabel(master, fmtFn, suffix=""){
   };
 }
 
-/* ✅ NOVO: label em TODOS os pontos de linha (ignorando null) */
 function lineAllLabels(fmtFn, suffix=""){
   return {
     show:true,
@@ -288,6 +337,7 @@ function stackInsideLabel(fmtFn, suffix=""){
 function buildFiveScreensForSource(sourceIndex){
   const src = SOURCES[sourceIndex];
   const master = DATA_BY_SOURCE[sourceIndex];
+  const isLowPerf = PERF.mode === 'low';
 
   return [
     {
@@ -298,12 +348,12 @@ function buildFiveScreensForSource(sourceIndex){
         opt.series=[{
           name:"Utilização (%)",
           type:"line",
-          smooth:true,
+          smooth: !isLowPerf,
           showSymbol:true,
           symbol:"circle",
-          symbolSize:5,
+          symbolSize: isLowPerf ? 3 : 5,
           connectNulls:true,
-          lineStyle:{width:3},
+          lineStyle:{width: isLowPerf ? 2 : 3},
           areaStyle:{color:gradientArea("rgba(79,124,255,0.33)","rgba(79,124,255,0.03)")},
           label: lineAllLabels(fmt2, "%"),
           data: master.map(x=>x.util)
@@ -319,12 +369,12 @@ function buildFiveScreensForSource(sourceIndex){
         opt.series=[{
           name:"Eficiência 5d (%)",
           type:"line",
-          smooth:true,
+          smooth: !isLowPerf,
           showSymbol:true,
           symbol:"circle",
-          symbolSize:5,
+          symbolSize: isLowPerf ? 3 : 5,
           connectNulls:true,
-          lineStyle:{width:3},
+          lineStyle:{width: isLowPerf ? 2 : 3},
           areaStyle:{color:gradientArea("rgba(36,211,238,0.28)","rgba(36,211,238,0.03)")},
           label: lineAllLabels(fmt2, "%"),
           data: master.map(x=>x.ef5)
@@ -341,11 +391,8 @@ function buildFiveScreensForSource(sourceIndex){
           type:"bar",
           barWidth:"55%",
           itemStyle:{
-            borderRadius:[10,10,0,0],
-            color:new echarts.graphic.LinearGradient(0,0,0,1,[
-              {offset:0,color:"rgba(79,124,255,0.95)"},
-              {offset:1,color:"rgba(79,124,255,0.25)"}
-            ])
+            borderRadius: isLowPerf ? [6,6,0,0] : [10,10,0,0],
+            color: gradientBar("rgba(79,124,255,0.95)", "rgba(79,124,255,0.25)")
           },
           label: barTopLabel(fmtInt),
           data: master.map(x=>x.pecas)
@@ -360,12 +407,12 @@ function buildFiveScreensForSource(sourceIndex){
         opt.series=[{
           name:"TC médio (s)",
           type:"line",
-          smooth:true,
+          smooth: !isLowPerf,
           showSymbol:true,
           symbol:"circle",
-          symbolSize:5,
+          symbolSize: isLowPerf ? 3 : 5,
           connectNulls:true,
-          lineStyle:{width:3,color:"rgba(255,255,255,0.85)"},
+          lineStyle:{width: isLowPerf ? 2 : 3, color:"rgba(255,255,255,0.85)"},
           label: lineAllLabels(fmtInt, "s"),
           data: master.map(x=>x.tc_s)
         }];
@@ -384,7 +431,10 @@ function buildFiveScreensForSource(sourceIndex){
             type:"bar",
             stack:"total",
             barWidth:"55%",
-            itemStyle:{borderRadius:[10,10,0,0],color:"rgba(36,211,238,0.85)"},
+            itemStyle:{
+              borderRadius: isLowPerf ? [6,6,0,0] : [10,10,0,0],
+              color:"rgba(36,211,238,0.85)"
+            },
             label: stackInsideLabel(fmt1,"h"),
             data: master.map(x=>x.func_h)
           },
@@ -393,7 +443,10 @@ function buildFiveScreensForSource(sourceIndex){
             type:"bar",
             stack:"total",
             barWidth:"55%",
-            itemStyle:{borderRadius:[10,10,0,0],color:"rgba(255,99,132,0.72)"},
+            itemStyle:{
+              borderRadius: isLowPerf ? [6,6,0,0] : [10,10,0,0],
+              color:"rgba(255,99,132,0.72)"
+            },
             label: stackInsideLabel(fmt1,"h"),
             data: master.map(x=>x.parado_h)
           }
@@ -415,12 +468,14 @@ let DATA_BY_SOURCE = [];
 let SCREENS = [];
 
 function setHeader(){
+  if(!SCREENS.length) return; // ✅ PROTEÇÃO
   const s = SCREENS[screenIdx];
   elTitle.textContent = s.title;
   elMeta.textContent = `${screenIdx+1}/${SCREENS.length} • ${SOURCES.length} links • ${LAST_DAYS} dias`;
 }
 
 function render(){
+  if(!SCREENS.length) return; // ✅ PROTEÇÃO
   hideMsg();
   setHeader();
   chart.setOption(SCREENS[screenIdx].option(), true);
@@ -428,6 +483,7 @@ function render(){
 }
 
 function tick(now){
+  if(!SCREENS.length) return; // ✅ PROTEÇÃO
   const remaining = INTERVAL_MS - (now - startT);
   const frac = Math.max(0, Math.min(1, remaining / INTERVAL_MS));
   elProg.style.transform = `scaleX(${frac})`;
@@ -439,10 +495,12 @@ function tick(now){
 }
 
 function next(){
+  if(!SCREENS.length) return; // ✅ PROTEÇÃO
   screenIdx = (screenIdx+1) % SCREENS.length;
   render();
 }
 function prev(){
+  if(!SCREENS.length) return; // ✅ PROTEÇÃO
   screenIdx = (screenIdx-1 + SCREENS.length) % SCREENS.length;
   render();
 }
@@ -466,6 +524,10 @@ document.getElementById("prev").addEventListener("click", prev);
     SCREENS = [];
     for(let i=0;i<SOURCES.length;i++){
       SCREENS.push(...buildFiveScreensForSource(i));
+    }
+
+    if(!SCREENS.length){
+      throw new Error("Nenhum dado carregado.");
     }
 
     chart = echarts.init(document.getElementById("chart"), null, {renderer:"canvas"});
@@ -493,5 +555,3 @@ document.getElementById("prev").addEventListener("click", prev);
 </script>
 </body>
 </html>
-
-
