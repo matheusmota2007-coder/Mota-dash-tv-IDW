@@ -112,6 +112,7 @@
 <script>
 /* =========================
    CONFIG (TV BOX FRIENDLY)
+   AJUSTE: coloque seu token aqui (obrigatório se a API exige token)
 ========================= */
 const CONFIG = {
   sources: [
@@ -124,16 +125,15 @@ const CONFIG = {
       apiUrl: "https://script.google.com/macros/s/AKfycbzbEO-JpjRMjJSf-xOlIU36EAKITXep3lZa5wzX_gb2DBSFJNDauRdu8vd/exec"
     }
   ],
-  token: "",          // se seu Apps Script exigir token, coloque aqui
-  lastDays: 20,        // days=20
-  slideInterval: 35000,// 35s por slide
-  autoRefresh: 300000, // 5 min recarregar dados
+  token: "90czL6LPhZ1gHHlaurPZ1xmHpxyOeBqwPYqQWa5Z9bOYddf1kc", // <<< AJUSTE AQUI
+  lastDays: 20,
+  slideInterval: 35000,
+  autoRefresh: 300000,
   fetchTimeoutMs: 8000,
-  // performance:
   animation: false,
-  showLabels: false,   // TV Box: labels custam caro
-  showSymbols: true,   // pode deixar true (pontos pequenos)
-  progressTickMs: 250  // atualiza a barra 4x por segundo (sem rAF)
+  showLabels: false,
+  showSymbols: true,
+  progressTickMs: 250
 };
 
 /* =========================
@@ -153,11 +153,53 @@ const DOM = {
 };
 
 /* =========================
-   HELPERS
+   HELPERS (pt-BR parsing)
+   API retorna rows[][] (strings pt-BR). Precisamos converter.
 ========================= */
 function fmtInt(n){ return (n==null || n==="") ? "" : Math.round(Number(n)).toLocaleString("pt-BR"); }
 function fmt1(n){ return (n==null || n==="") ? "" : (Math.round(Number(n)*10)/10).toLocaleString("pt-BR"); }
 function fmt2(n){ return (n==null || n==="") ? "" : (Math.round(Number(n)*100)/100).toLocaleString("pt-BR"); }
+
+function normKey(s){
+  return String(s||"").trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^\w\s]/g," ").replace(/\s+/g," ").trim();
+}
+function idxOf(headers, name){
+  const h = headers.map(normKey);
+  return h.indexOf(normKey(name));
+}
+
+function parsePtNumber(v){
+  if(v==null) return null;
+  if(typeof v === "number") return Number.isFinite(v) ? v : null;
+  let s = String(v).trim();
+  if(!s) return null;
+  // remove separador milhar ".", troca decimal "," -> "."
+  s = s.replace(/\./g,"").replace(",",".");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+function parsePercent(v){
+  if(v==null) return null;
+  let s = String(v).trim();
+  if(!s) return null;
+  s = s.replace("%","").trim();
+  return parsePtNumber(s); // retorna 0..100
+}
+function parseHMS(v){
+  if(v==null) return null;
+  const s = String(v).trim();
+  const m = s.match(/^(\d{1,3}):(\d{2}):(\d{2})$/);
+  if(!m) return null;
+  return (+m[1])*3600 + (+m[2])*60 + (+m[3]); // segundos
+}
+function labelFromDateBR(d){
+  // "13/01/2026" -> "13/01"
+  const s = String(d||"").trim();
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[1]}/${m[2]}` : s;
+}
 
 function showOverlay(t, s=""){
   DOM.ovTitle.textContent = t;
@@ -173,15 +215,18 @@ function setStatus(kind, text){
   DOM.metaText.textContent = text;
 }
 
+/* =========================
+   FETCH JSON (Apps Script)
+========================= */
 async function fetchJson(url){
   const controller = new AbortController();
   const to = setTimeout(() => controller.abort(), CONFIG.fetchTimeoutMs);
 
   try{
     const u = new URL(url);
-    u.searchParams.set("days", String(CONFIG.lastDays));
     if(CONFIG.token) u.searchParams.set("token", CONFIG.token);
-    // cache-bust moderado (mantém comportamento estável em WebView)
+    // A sua API "simplificada" retorna tudo sem precisar days, mas manter não atrapalha
+    u.searchParams.set("days", String(CONFIG.lastDays));
     u.searchParams.set("_", String(Date.now()));
 
     const resp = await fetch(u.toString(), {
@@ -191,13 +236,73 @@ async function fetchJson(url){
     });
     if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const json = await resp.json();
-    // aceitamos {ok:true} ou payload sem ok
+
     if(json && json.ok === false) throw new Error(json.error || "API error");
-    if(!json || !Array.isArray(json.rows)) throw new Error("Formato inválido: falta rows[]");
+    if(!json || !Array.isArray(json.rows) || !Array.isArray(json.headers)) {
+      throw new Error("Formato inválido: precisa headers[] e rows[][]");
+    }
     return json;
   } finally {
     clearTimeout(to);
   }
+}
+
+/* =========================
+   TRANSFORM: payload -> rows[{label, util, ef5, pecas, tc_s, func_h, parado_h}]
+   IMPORTANTE: sua API retorna rows[][], não rows de objetos.
+========================= */
+function transformApiPayload(payload){
+  const headers = payload.headers;
+  const rows = payload.rows;
+
+  const cData = idxOf(headers, "data");
+  const cUtil = idxOf(headers, "utilização de Maquina");
+  const cEf5  = idxOf(headers, "Eficiencia -5 dias média");
+  const cPcs  = idxOf(headers, "Peças Fabric.");
+  const cTc   = idxOf(headers, "TC MEDIO");
+  const cFunc = idxOf(headers, "Funcionando");
+  const cPar  = idxOf(headers, "Parado");
+
+  if(cData < 0) throw new Error("Coluna 'data' não encontrada em headers[]");
+  // demais colunas podem não existir em algumas planilhas; nesse caso vão virar null
+
+  const out = [];
+  for(const r of rows){
+    const dateBr = (cData>=0) ? r[cData] : "";
+    const label = labelFromDateBR(dateBr);
+
+    const util = (cUtil>=0) ? parsePercent(r[cUtil]) : null;
+    const ef5  = (cEf5>=0)  ? parsePercent(r[cEf5])  : null;
+    const pecas = (cPcs>=0) ? parsePtNumber(r[cPcs]) : null;
+
+    const tc_s = (cTc>=0) ? parseHMS(r[cTc]) : null;
+
+    const func_s = (cFunc>=0) ? parseHMS(r[cFunc]) : null;
+    const par_s  = (cPar>=0)  ? parseHMS(r[cPar])  : null;
+
+    out.push({
+      label,
+      util,
+      ef5,
+      pecas,
+      tc_s,
+      func_h: func_s==null ? null : (func_s/3600),
+      parado_h: par_s==null ? null : (par_s/3600)
+    });
+  }
+
+  // sua API já está retornando do mais recente pro mais antigo (como no exemplo).
+  // para o gráfico ficar "antigo -> novo" no eixo, inverta:
+  const sliced = out.slice(0, CONFIG.lastDays).reverse();
+
+  // arredonda horas (evita tooltip feio)
+  for(const x of sliced){
+    if(x.func_h!=null) x.func_h = Math.round(x.func_h*100)/100;
+    if(x.parado_h!=null) x.parado_h = Math.round(x.parado_h*100)/100;
+    if(x.util!=null) x.util = Math.round(x.util*100)/100;
+    if(x.ef5!=null) x.ef5 = Math.round(x.ef5*100)/100;
+  }
+  return sliced;
 }
 
 /* =========================
@@ -262,7 +367,7 @@ function makeScreens(sourceName, rows){
             color:"#e8eaed",fontSize:10,fontWeight:700,
             formatter:p=>p.value==null?"":fmt2(p.value)+"%"
           },
-          data: rows.map(r => r.util ?? null)
+          data: rows.map(r => (r.util ?? null))
         }];
         return opt;
       }
@@ -292,7 +397,7 @@ function makeScreens(sourceName, rows){
             color:"#e8eaed",fontSize:10,fontWeight:700,
             formatter:p=>p.value==null?"":fmt2(p.value)+"%"
           },
-          data: rows.map(r => r.ef5 ?? null)
+          data: rows.map(r => (r.ef5 ?? null))
         }];
         return opt;
       }
@@ -318,7 +423,7 @@ function makeScreens(sourceName, rows){
             color:"#e8eaed",fontSize:11,fontWeight:800,
             formatter:p=>fmtInt(p.value)
           },
-          data: rows.map(r => r.pecas ?? null)
+          data: rows.map(r => (r.pecas ?? null))
         }];
         return opt;
       }
@@ -343,7 +448,7 @@ function makeScreens(sourceName, rows){
             color:"#e8eaed",fontSize:10,fontWeight:700,
             formatter:p=>p.value==null?"":fmtInt(p.value)+"s"
           },
-          data: rows.map(r => r.tc_s ?? null)
+          data: rows.map(r => (r.tc_s ?? null))
         }];
         return opt;
       }
@@ -367,7 +472,7 @@ function makeScreens(sourceName, rows){
               color:"#fff",fontSize:11,fontWeight:800,
               formatter:p=>p.value==null?"":fmt1(p.value)+"h"
             },
-            data: rows.map(r => r.func_h ?? null)
+            data: rows.map(r => (r.func_h ?? null))
           },
           {
             name:"Parado (h)",
@@ -380,7 +485,7 @@ function makeScreens(sourceName, rows){
               color:"#fff",fontSize:11,fontWeight:800,
               formatter:p=>p.value==null?"":fmt1(p.value)+"h"
             },
-            data: rows.map(r => r.parado_h ?? null)
+            data: rows.map(r => (r.parado_h ?? null))
           }
         ];
         return opt;
@@ -446,13 +551,12 @@ function startSlideLoop(){
 /* =========================
    DATA LOAD + FALLBACK
 ========================= */
-function cacheKeyFor(i){ return `mota_tv_api_cache_v1_${i}`; }
+function cacheKeyFor(i){ return `mota_tv_api_cache_v2_${i}`; }
 
 async function loadAllSources(){
   showOverlay("Carregando dados…", "Conectando nos Apps Scripts");
   setStatus("partial","Buscando dados…");
 
-  // busca em paralelo (melhor para TV box)
   const results = await Promise.all(CONFIG.sources.map((s, i) =>
     fetchJson(s.apiUrl).then(
       json => ({ ok:true, json, i }),
@@ -461,30 +565,32 @@ async function loadAllSources(){
   ));
 
   let okCount = 0;
-  const allRows = [];
+  const allSeries = [];
 
   for(const r of results){
     if(r.ok){
       okCount++;
-      allRows[r.i] = r.json.rows;
-      // salva cache
+      const series = transformApiPayload(r.json);
+      allSeries[r.i] = series;
       try{ localStorage.setItem(cacheKeyFor(r.i), JSON.stringify(r.json)); }catch(_){}
     } else {
-      // tenta cache
       let cached = null;
       try{
         const raw = localStorage.getItem(cacheKeyFor(r.i));
         if(raw) cached = JSON.parse(raw);
       }catch(_){}
-      if(cached && Array.isArray(cached.rows)){
-        allRows[r.i] = cached.rows;
+      if(cached && Array.isArray(cached.rows) && Array.isArray(cached.headers)){
+        try{
+          allSeries[r.i] = transformApiPayload(cached);
+        }catch(_){
+          allSeries[r.i] = [];
+        }
       } else {
-        allRows[r.i] = []; // sem dados
+        allSeries[r.i] = [];
       }
     }
   }
 
-  // status
   const when = new Date().toLocaleString("pt-BR");
   if(okCount === CONFIG.sources.length){
     setStatus("good", `Ao vivo • ${when}`);
@@ -494,7 +600,7 @@ async function loadAllSources(){
     setStatus("offline", `Offline • ${when}`);
   }
 
-  return { allRows, okCount };
+  return { allSeries, okCount };
 }
 
 /* =========================
@@ -509,35 +615,31 @@ function ensureChart(){
 async function buildScreensAndStart(isRefresh=false){
   ensureChart();
 
-  const { allRows, okCount } = await loadAllSources();
+  const { allSeries } = await loadAllSources();
 
-  // monta telas
   const screens = [];
   for(let i=0; i<CONFIG.sources.length; i++){
     const srcName = CONFIG.sources[i].name;
-    const rows = (allRows[i] || []).slice(0, CONFIG.lastDays); // já deve vir recente -> antigo
-    if(rows.length){
-      screens.push(...makeScreens(srcName, rows));
+    const seriesRows = (allSeries[i] || []);
+    if(seriesRows.length){
+      screens.push(...makeScreens(srcName, seriesRows));
     }
   }
 
   if(!screens.length){
-    showOverlay("Sem dados para exibir", "Verifique se o Apps Script está retornando rows[]");
+    showOverlay("Sem dados para exibir", "Verifique se a API retorna headers[] e rows[][]");
     DOM.title.textContent = "Sem dados";
     DOM.badge.textContent = "0/0";
     return;
   }
 
   SCREENS = screens;
-
-  // se refresh, mantém índice dentro do range
   if(currentIndex >= SCREENS.length) currentIndex = 0;
 
   renderCurrent();
   startProgressLoop();
   startSlideLoop();
 
-  // auto refresh
   if(refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(() => {
     buildScreensAndStart(true).catch(err => {
@@ -550,14 +652,12 @@ async function buildScreensAndStart(isRefresh=false){
 document.getElementById("next").addEventListener("click", next);
 document.getElementById("prev").addEventListener("click", prev);
 
-// Teclado (útil em PC; em TV box geralmente não)
 window.addEventListener("keydown", (e) => {
   if(e.key==="ArrowRight" || e.key===" " || e.key==="PageDown") next();
   if(e.key==="ArrowLeft"  || e.key==="Backspace" || e.key==="PageUp") prev();
   if(e.key.toLowerCase()==="r") buildScreensAndStart(true).catch(()=>{});
 });
 
-// Swipe no celular / touch na TV (algumas TV Box suportam)
 let touchX = null;
 window.addEventListener("touchstart", (e)=>{ touchX = e.touches?.[0]?.clientX ?? null; }, {passive:true});
 window.addEventListener("touchend", (e)=>{
@@ -579,4 +679,3 @@ buildScreensAndStart(false).catch(err => {
 </script>
 </body>
 </html>
-
