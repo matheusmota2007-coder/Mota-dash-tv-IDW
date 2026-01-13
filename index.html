@@ -193,9 +193,6 @@ const CONFIG = {
       name: "Corte",
       csvUrl: "https://docs.google.com/spreadsheets/d/1kx0dG1Ca0sKBqzCQPWsKz7OOwIC-CBQzCmy6hD8fLnU/gviz/tq?tqx=out:csv&gid=279273967"
     }
-
-
-    
   ],
   lastDays: 20,              // Otimizado para performance
   slideInterval: 35000,      // 35 segundos por slide
@@ -243,15 +240,28 @@ function normHeader(s){
     .replace(/[^\w\s]/g," ").replace(/\s+/g," ").trim();
 }
 
+function cleanValue(v){
+  // Remove espaços extras de valores
+  return String(v??"").trim();
+}
+
 function parseNum(v){
   const s=String(v??"").trim(); if(!s) return null;
-  if(s.endsWith("%")){
-    const raw=s.slice(0,-1).trim();
-    return parseNum(raw);
+  
+  // Remove espaços extras
+  const cleaned = s.replace(/\s+/g, "");
+  
+  // Se termina com %, remove o %
+  if(cleaned.endsWith("%")){
+    const raw = cleaned.slice(0,-1).trim();
+    const n = parseFloat(raw.replace(",", "."));
+    return Number.isFinite(n) ? n : null;
   }
-  const norm=s.replace(/\./g,"").replace(",",".");
-  const n=Number(norm);
-  return Number.isFinite(n)?n:null;
+  
+  // Substitui vírgula por ponto e remove pontos de milhares
+  const norm = cleaned.replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(norm);
+  return Number.isFinite(n) ? n : null;
 }
 
 function parseDate(v){
@@ -322,7 +332,7 @@ async function loadData(csvUrl, retries = 3){
 
       const data = [];
       for(let r=1; r<rows.length; r++){
-        const row = rows[r];
+        const row = rows[r].map(cleanValue); // ✅ Limpa valores
         const date = parseDate(row[cols.data]);
         if(!date) continue;
 
