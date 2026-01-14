@@ -144,254 +144,337 @@
     }
 
     function drawLineChart(ctx, canvas, labels, values, title, color, suffix = '') {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const padding = 40;
-      const chartWidth = canvas.width - padding * 2;
-      const chartHeight = canvas.height - padding * 2 - 30;
-      
-      const maxValue = Math.max(...values.filter(v => v !== null)) || 100;
-      const minValue = Math.min(...values.filter(v => v !== null)) || 0;
-      const range = maxValue - minValue || 1;
-      
-      // Título
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(title, canvas.width / 2, 20);
-      
-      // Linha
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      
-      let firstPoint = true;
-      labels.forEach((label, i) => {
-        const value = values[i];
-        if (value === null) return;
+      try {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        const x = padding + (i / (labels.length - 1)) * chartWidth;
-        const y = padding + 30 + chartHeight - ((value - minValue) / range) * chartHeight;
+        const padding = 40;
+        const chartWidth = canvas.width - padding * 2;
+        const chartHeight = canvas.height - padding * 2 - 30;
         
-        if (firstPoint) {
-          ctx.moveTo(x, y);
-          firstPoint = false;
-        } else {
-          ctx.lineTo(x, y);
+        // Filtrar valores válidos
+        const validValues = values.filter(v => v !== null && !isNaN(v) && isFinite(v));
+        if (validValues.length === 0) {
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Sem dados disponíveis', canvas.width / 2, canvas.height / 2);
+          return;
         }
         
-        // Ponto
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill();
+        const maxValue = Math.max(...validValues, 1);
+        const minValue = Math.min(...validValues, 0);
+        const range = maxValue - minValue || 1;
         
-        // Valor
+        // Título
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px Arial';
+        ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(value.toFixed(1) + suffix, x, y - 10);
+        ctx.fillText(title, canvas.width / 2, 20);
         
-        // Label
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px Arial';
-        ctx.fillText(label, x, canvas.height - 10);
-      });
-      
-      ctx.stroke();
+        // Linha
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        let firstPoint = true;
+        labels.forEach((label, i) => {
+          const value = values[i];
+          if (value === null || isNaN(value) || !isFinite(value)) return;
+          
+          const x = padding + (i / Math.max(labels.length - 1, 1)) * chartWidth;
+          const y = padding + 30 + chartHeight - ((value - minValue) / range) * chartHeight;
+          
+          if (firstPoint) {
+            ctx.moveTo(x, y);
+            firstPoint = false;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        
+        ctx.stroke();
+        
+        // Pontos e valores
+        labels.forEach((label, i) => {
+          const value = values[i];
+          if (value === null || isNaN(value) || !isFinite(value)) return;
+          
+          const x = padding + (i / Math.max(labels.length - 1, 1)) * chartWidth;
+          const y = padding + 30 + chartHeight - ((value - minValue) / range) * chartHeight;
+          
+          // Ponto
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Valor
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 11px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(value.toFixed(1) + suffix, x, y - 10);
+          
+          // Label
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '10px Arial';
+          ctx.fillText(label, x, canvas.height - 10);
+        });
+      } catch (error) {
+        console.error('Erro no drawLineChart:', error);
+      }
     }
 
     function drawBarChart(ctx, canvas, labels, values, title, color, suffix = '') {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const padding = 40;
-      const chartWidth = canvas.width - padding * 2;
-      const chartHeight = canvas.height - padding * 2 - 30;
-      const barWidth = chartWidth / labels.length - 8;
-      
-      const maxValue = Math.max(...values.filter(v => v !== null)) || 100;
-      
-      // Título
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(title, canvas.width / 2, 20);
-      
-      // Barras
-      labels.forEach((label, i) => {
-        const value = values[i];
-        if (value === null) return;
+      try {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        const x = padding + i * (barWidth + 8);
-        const barHeight = (value / maxValue) * chartHeight;
-        const y = canvas.height - padding - barHeight - 20;
+        const padding = 40;
+        const chartWidth = canvas.width - padding * 2;
+        const chartHeight = canvas.height - padding * 2 - 30;
+        const barWidth = Math.max(chartWidth / labels.length - 8, 10);
         
-        // Desenha barra
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, barWidth, barHeight);
+        // Filtrar valores válidos
+        const validValues = values.filter(v => v !== null && !isNaN(v) && isFinite(v));
+        if (validValues.length === 0) {
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Sem dados disponíveis', canvas.width / 2, canvas.height / 2);
+          return;
+        }
         
-        // Valor em cima
+        const maxValue = Math.max(...validValues, 1);
+        
+        // Título
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px Arial';
+        ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(value.toFixed(0) + suffix, x + barWidth / 2, y - 5);
+        ctx.fillText(title, canvas.width / 2, 20);
         
-        // Label embaixo
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px Arial';
-        ctx.fillText(label, x + barWidth / 2, canvas.height - 10);
-      });
+        // Barras
+        labels.forEach((label, i) => {
+          const value = values[i];
+          if (value === null || isNaN(value) || !isFinite(value)) return;
+          
+          const x = padding + i * (barWidth + 8);
+          const barHeight = (value / maxValue) * chartHeight;
+          const y = canvas.height - padding - barHeight - 20;
+          
+          // Desenha barra
+          ctx.fillStyle = color;
+          ctx.fillRect(x, y, barWidth, barHeight);
+          
+          // Valor em cima
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 11px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(value.toFixed(0) + suffix, x + barWidth / 2, y - 5);
+          
+          // Label embaixo
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '10px Arial';
+          ctx.fillText(label, x + barWidth / 2, canvas.height - 10);
+        });
+      } catch (error) {
+        console.error('Erro no drawBarChart:', error);
+      }
     }
 
     function drawStackedBarChart(ctx, canvas, labels, values1, values2, title, color1, color2, label1, label2) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const padding = 40;
-      const chartWidth = canvas.width - padding * 2;
-      const chartHeight = canvas.height - padding * 2 - 50;
-      const barWidth = chartWidth / labels.length - 8;
-      
-      const maxValues = [];
-      for (let i = 0; i < labels.length; i++) {
-        const v1 = values1[i] || 0;
-        const v2 = values2[i] || 0;
-        maxValues.push(v1 + v2);
-      }
-      const maxValue = Math.max(...maxValues) || 24;
-      
-      // Título
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(title, canvas.width / 2, 20);
-      
-      // Legenda
-      ctx.font = '11px Arial';
-      const legendY = 35;
-      ctx.fillStyle = color1;
-      ctx.fillRect(canvas.width / 2 - 60, legendY, 15, 15);
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'left';
-      ctx.fillText(label1, canvas.width / 2 - 42, legendY + 11);
-      
-      ctx.fillStyle = color2;
-      ctx.fillRect(canvas.width / 2 + 10, legendY, 15, 15);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(label2, canvas.width / 2 + 28, legendY + 11);
-      
-      // Barras empilhadas
-      labels.forEach((label, i) => {
-        const val1 = values1[i] || 0;
-        const val2 = values2[i] || 0;
+      try {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        const x = padding + i * (barWidth + 8);
+        const padding = 40;
+        const chartWidth = canvas.width - padding * 2;
+        const chartHeight = canvas.height - padding * 2 - 50;
+        const barWidth = Math.max(chartWidth / labels.length - 8, 10);
         
-        // Barra 1 (funcionando - embaixo)
-        const height1 = (val1 / maxValue) * chartHeight;
-        const y1 = canvas.height - padding - height1 - 20;
-        
-        ctx.fillStyle = color1;
-        ctx.fillRect(x, y1, barWidth, height1);
-        
-        // Valor dentro da barra 1
-        if (height1 > 20) {
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 10px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(val1.toFixed(1) + 'h', x + barWidth / 2, y1 + height1 / 2 + 3);
+        const maxValues = [];
+        for (let i = 0; i < labels.length; i++) {
+          const v1 = values1[i] || 0;
+          const v2 = values2[i] || 0;
+          if (isFinite(v1) && isFinite(v2)) {
+            maxValues.push(v1 + v2);
+          }
         }
         
-        // Barra 2 (parado - em cima)
-        const height2 = (val2 / maxValue) * chartHeight;
-        const y2 = y1 - height2;
+        if (maxValues.length === 0) {
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Sem dados disponíveis', canvas.width / 2, canvas.height / 2);
+          return;
+        }
+        
+        const maxValue = Math.max(...maxValues, 1);
+        
+        // Título
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, canvas.width / 2, 20);
+        
+        // Legenda
+        ctx.font = '11px Arial';
+        const legendY = 35;
+        ctx.fillStyle = color1;
+        ctx.fillRect(canvas.width / 2 - 60, legendY, 15, 15);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.fillText(label1, canvas.width / 2 - 42, legendY + 11);
         
         ctx.fillStyle = color2;
-        ctx.fillRect(x, y2, barWidth, height2);
+        ctx.fillRect(canvas.width / 2 + 10, legendY, 15, 15);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label2, canvas.width / 2 + 28, legendY + 11);
         
-        // Valor dentro da barra 2
-        if (height2 > 20) {
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 10px Arial';
+        // Barras empilhadas
+        labels.forEach((label, i) => {
+          const val1 = values1[i] || 0;
+          const val2 = values2[i] || 0;
+          
+          if (!isFinite(val1) || !isFinite(val2)) return;
+          
+          const x = padding + i * (barWidth + 8);
+          
+          // Barra 1 (funcionando - embaixo)
+          const height1 = (val1 / maxValue) * chartHeight;
+          const y1 = canvas.height - padding - height1 - 20;
+          
+          ctx.fillStyle = color1;
+          ctx.fillRect(x, y1, barWidth, height1);
+          
+          // Valor dentro da barra 1
+          if (height1 > 20) {
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(val1.toFixed(1) + 'h', x + barWidth / 2, y1 + height1 / 2 + 3);
+          }
+          
+          // Barra 2 (parado - em cima)
+          const height2 = (val2 / maxValue) * chartHeight;
+          const y2 = y1 - height2;
+          
+          ctx.fillStyle = color2;
+          ctx.fillRect(x, y2, barWidth, height2);
+          
+          // Valor dentro da barra 2
+          if (height2 > 20) {
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(val2.toFixed(1) + 'h', x + barWidth / 2, y2 + height2 / 2 + 3);
+          }
+          
+          // Label embaixo
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '10px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(val2.toFixed(1) + 'h', x + barWidth / 2, y2 + height2 / 2 + 3);
-        }
-        
-        // Label embaixo
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(label, x + barWidth / 2, canvas.height - 10);
-      });
+          ctx.fillText(label, x + barWidth / 2, canvas.height - 10);
+        });
+      } catch (error) {
+        console.error('Erro no drawStackedBarChart:', error);
+      }
     }
 
     // ========== PROCESSAMENTO DE DADOS ==========
     function parseHMS(value) {
-      if (!value) return 0;
-      const parts = String(value).split(':');
-      if (parts.length !== 3) return 0;
-      const hours = parseInt(parts[0]) || 0;
-      const minutes = parseInt(parts[1]) || 0;
-      const seconds = parseInt(parts[2]) || 0;
-      return hours + minutes / 60 + seconds / 3600;
+      try {
+        if (!value) return 0;
+        const parts = String(value).split(':');
+        if (parts.length !== 3) return 0;
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        const seconds = parseInt(parts[2]) || 0;
+        const total = hours + minutes / 60 + seconds / 3600;
+        return isFinite(total) ? total : 0;
+      } catch (error) {
+        console.error('Erro no parseHMS:', error);
+        return 0;
+      }
     }
 
     function parseData(json) {
-      const headers = json.headers || [];
-      const rows = json.rows || [];
-      
-      const result = [];
-      
-      rows.forEach(row => {
-        const obj = {};
-        headers.forEach((h, i) => {
-          obj[h] = row[i];
+      try {
+        console.log('Processando dados...');
+        const headers = json.headers || [];
+        const rows = json.rows || [];
+        
+        const result = [];
+        
+        rows.forEach((row, idx) => {
+          try {
+            const obj = {};
+            headers.forEach((h, i) => {
+              obj[h] = row[i];
+            });
+            
+            const pecas = parseFloat(String(obj['Peças Fabric.'] || '0').replace(/\./g, '').replace(',', '.')) || 0;
+            const funcionando = parseHMS(obj['Funcionando']);
+            
+            // Calcular TC Médio (Tempo de Ciclo) com proteção
+            let tcMedio = null;
+            if (pecas > 0 && funcionando > 0 && isFinite(pecas) && isFinite(funcionando)) {
+              tcMedio = (funcionando * 60) / pecas; // tempo em minutos por peça
+              if (!isFinite(tcMedio)) tcMedio = null;
+            }
+            
+            const util = parseFloat(String(obj['Utilização de Maquina'] || '0').replace('%', '').replace(',', '.'));
+            
+            result.push({
+              label: obj.data ? obj.data.substring(0, 5) : '',
+              util: (isFinite(util) && util >= 0) ? util : null,
+              pecas: (isFinite(pecas) && pecas >= 0) ? pecas : null,
+              funcionando: isFinite(funcionando) ? funcionando : 0,
+              parado: isFinite(parseHMS(obj['Parado'])) ? parseHMS(obj['Parado']) : 0,
+              tcMedio: tcMedio
+            });
+          } catch (rowError) {
+            console.error('Erro ao processar linha:', idx, rowError);
+          }
         });
         
-        // Calcular TC Médio (Tempo de Ciclo)
-        const pecas = parseFloat(String(obj['Peças Fabric.'] || '0').replace('.', '').replace(',', '.')) || 0;
-        const funcionando = parseHMS(obj['Funcionando']);
-        let tcMedio = null;
-        if (pecas > 0 && funcionando > 0) {
-          tcMedio = (funcionando * 60) / pecas; // tempo em minutos por peça
-        }
-        
-        result.push({
-          label: obj.data ? obj.data.substring(0, 5) : '',
-          util: parseFloat(String(obj['Utilização de Maquina'] || '0').replace('%', '').replace(',', '.')) || null,
-          pecas: parseFloat(String(obj['Peças Fabric.'] || '0').replace('.', '').replace(',', '.')) || null,
-          funcionando: funcionando,
-          parado: parseHMS(obj['Parado']),
-          tcMedio: tcMedio
-        });
-      });
-      
-      return result;
+        console.log('Dados processados com sucesso:', result);
+        return result;
+      } catch (error) {
+        console.error('Erro no parseData:', error);
+        return [];
+      }
     }
 
     function drawAllCharts(data) {
-      const labels = data.map(d => d.label);
-      const utilData = data.map(d => d.util);
-      const pecasData = data.map(d => d.pecas);
-      const funcionandoData = data.map(d => d.funcionando);
-      const paradoData = data.map(d => d.parado);
-      const tcMedioData = data.map(d => d.tcMedio);
-      
-      // Gráfico 1: Utilização de Máquina (linha)
-      resizeCanvas(charts[0].canvas);
-      drawLineChart(charts[0].ctx, charts[0].canvas, labels, utilData, 'Utilização de Máquina', '#3b82f6', '%');
-      
-      // Gráfico 2: Produção Diária (barras)
-      resizeCanvas(charts[1].canvas);
-      drawBarChart(charts[1].ctx, charts[1].canvas, labels, pecasData, 'Peças Fabricadas', '#22c55e', '');
-      
-      // Gráfico 3: Funcionamento/Parado (barras empilhadas)
-      resizeCanvas(charts[2].canvas);
-      drawStackedBarChart(charts[2].ctx, charts[2].canvas, labels, funcionandoData, paradoData, 
-        'Horas Func. / Parado', '#22c55e', '#ef4444', 'Funcionando', 'Parado');
-      
-      // Gráfico 4: Tempo de Ciclo Médio (linha)
-      resizeCanvas(charts[3].canvas);
-      drawLineChart(charts[3].ctx, charts[3].canvas, labels, tcMedioData, 'TC Médio (min/peça)', '#f59e0b', ' min');
+      try {
+        console.log('Desenhando gráficos...');
+        
+        const labels = data.map(d => d.label);
+        const utilData = data.map(d => d.util);
+        const pecasData = data.map(d => d.pecas);
+        const funcionandoData = data.map(d => d.funcionando);
+        const paradoData = data.map(d => d.parado);
+        const tcMedioData = data.map(d => d.tcMedio);
+        
+        // Gráfico 1: Utilização de Máquina (linha)
+        resizeCanvas(charts[0].canvas);
+        drawLineChart(charts[0].ctx, charts[0].canvas, labels, utilData, 'Utilização de Máquina', '#3b82f6', '%');
+        
+        // Gráfico 2: Produção Diária (barras)
+        resizeCanvas(charts[1].canvas);
+        drawBarChart(charts[1].ctx, charts[1].canvas, labels, pecasData, 'Peças Fabricadas', '#22c55e', '');
+        
+        // Gráfico 3: Funcionamento/Parado (barras empilhadas)
+        resizeCanvas(charts[2].canvas);
+        drawStackedBarChart(charts[2].ctx, charts[2].canvas, labels, funcionandoData, paradoData, 
+          'Horas Func. / Parado', '#22c55e', '#ef4444', 'Funcionando', 'Parado');
+        
+        // Gráfico 4: Tempo de Ciclo Médio (linha)
+        resizeCanvas(charts[3].canvas);
+        drawLineChart(charts[3].ctx, charts[3].canvas, labels, tcMedioData, 'TC Médio (min/peça)', '#f59e0b', ' min');
+        
+        console.log('Gráficos desenhados com sucesso!');
+      } catch (error) {
+        console.error('Erro no drawAllCharts:', error);
+      }
     }
 
     // ========== CARREGAMENTO ==========
@@ -408,13 +491,18 @@
         console.log('JSON recebido:', json);
         
         allData = parseData(json);
-        console.log('Dados processados:', allData);
+        console.log('Dados processados:', allData.length, 'registros');
         
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('status').textContent = Última atualização: ${new Date().toLocaleTimeString('pt-BR')};
+        if (allData.length === 0) {
+          throw new Error('Nenhum dado foi processado');
+        }
         
         drawAllCharts(allData);
-        console.log('Gráficos desenhados!');
+        
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('status').textContent = Última atualização: ${new Date().toLocaleTimeString('pt-BR')} - ${allData.length} registros;
+        
+        console.log('Carregamento completo!');
         
       } catch (error) {
         console.error('Erro detalhado:', error);
