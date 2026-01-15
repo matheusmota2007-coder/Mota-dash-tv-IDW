@@ -209,11 +209,15 @@
           ctx.arc(x, y, 4, 0, Math.PI * 2);
           ctx.fill();
           
-          // Valor
+          // Valor rotacionado em 45°
+          ctx.save();
+          ctx.translate(x, y - 10);
+          ctx.rotate(-Math.PI / 4); // 45 graus
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 11px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(value.toFixed(1) + suffix, x, y - 10);
+          ctx.fillText(value.toFixed(1) + suffix, 0, 0);
+          ctx.restore();
           
           // Label rotacionado em 45°
           ctx.save();
@@ -271,11 +275,15 @@
           ctx.fillStyle = color;
           ctx.fillRect(x, y, barWidth, barHeight);
           
-          // Valor em cima
+          // Valor em cima rotacionado em 45°
+          ctx.save();
+          ctx.translate(x + barWidth / 2, y - 10);
+          ctx.rotate(-Math.PI / 4); // 45 graus
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 11px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(value.toFixed(0) + suffix, x + barWidth / 2, y - 5);
+          ctx.fillText(value.toFixed(0) + suffix, 0, 0);
+          ctx.restore();
           
           // Label rotacionado em 45°
           ctx.save();
