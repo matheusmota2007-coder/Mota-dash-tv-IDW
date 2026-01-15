@@ -490,7 +490,7 @@
     async function loadData() {
       try {
         console.log('Iniciando carregamento...');
-        const url = ${CONFIG.apiUrl}?token=${CONFIG.token}&_=${Date.now()};
+        const url = `${CONFIG.apiUrl}?token=${CONFIG.token}&_=${Date.now()}`;
         console.log('URL:', url);
         
         const response = await fetch(url);
@@ -509,7 +509,7 @@
         drawAllCharts(allData);
         
         document.getElementById('loading').classList.add('hidden');
-        document.getElementById('status').textContent = Última atualização: ${new Date().toLocaleTimeString('pt-BR')} - ${allData.length} registros;
+        document.getElementById('status').textContent = `Última atualização: ${new Date().toLocaleTimeString('pt-BR')} - ${allData.length} registros`;
         
         console.log('Carregamento completo!');
         
