@@ -148,7 +148,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         const padding = 40;
-        const bottomPadding = 70; // Aumentado para mais espaço
+        const bottomPadding = 70;
         const chartWidth = canvas.width - padding * 2;
         const chartHeight = canvas.height - padding - bottomPadding;
         
@@ -223,7 +223,7 @@
           // Valor rotacionado em 45°
           ctx.save();
           ctx.translate(x, y - 10);
-          ctx.rotate(-Math.PI / 4); // 45 graus
+          ctx.rotate(-Math.PI / 4);
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 11px Arial';
           ctx.textAlign = 'center';
@@ -233,7 +233,7 @@
           // Label rotacionado em 45°
           ctx.save();
           ctx.translate(x, canvas.height - bottomPadding + 15);
-          ctx.rotate(-Math.PI / 4); // 45 graus
+          ctx.rotate(-Math.PI / 4);
           ctx.fillStyle = '#94a3b8';
           ctx.font = '10px Arial';
           ctx.textAlign = 'right';
@@ -250,7 +250,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         const padding = 40;
-        const bottomPadding = 70; // Aumentado para mais espaço
+        const bottomPadding = 70;
         const chartWidth = canvas.width - padding * 2;
         const chartHeight = canvas.height - padding - bottomPadding;
         const barWidth = Math.max(chartWidth / labels.length - 8, 10);
@@ -300,7 +300,7 @@
           // Valor em cima rotacionado em 45°
           ctx.save();
           ctx.translate(x + barWidth / 2, y - 10);
-          ctx.rotate(-Math.PI / 4); // 45 graus
+          ctx.rotate(-Math.PI / 4);
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 11px Arial';
           ctx.textAlign = 'center';
@@ -310,7 +310,7 @@
           // Label rotacionado em 45°
           ctx.save();
           ctx.translate(x + barWidth / 2, canvas.height - bottomPadding + 15);
-          ctx.rotate(-Math.PI / 4); // 45 graus
+          ctx.rotate(-Math.PI / 4);
           ctx.fillStyle = '#94a3b8';
           ctx.font = '10px Arial';
           ctx.textAlign = 'right';
@@ -327,9 +327,9 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         const padding = 40;
-        const bottomPadding = 70; // Aumentado para mais espaço
+        const bottomPadding = 70;
         const chartWidth = canvas.width - padding * 2;
-        const chartHeight = canvas.height - padding - bottomPadding - 20; // -20 para legenda
+        const chartHeight = canvas.height - padding - bottomPadding - 20;
         const barWidth = Math.max(chartWidth / labels.length - 8, 10);
         
         const maxValues = [];
@@ -424,7 +424,7 @@
           // Label rotacionado em 45°
           ctx.save();
           ctx.translate(x + barWidth / 2, canvas.height - bottomPadding + 15);
-          ctx.rotate(-Math.PI / 4); // 45 graus
+          ctx.rotate(-Math.PI / 4);
           ctx.fillStyle = '#94a3b8';
           ctx.font = '10px Arial';
           ctx.textAlign = 'right';
@@ -489,8 +489,6 @@
             utilStr = utilStr.replace('%', '').replace(',', '.');
             const util = parseFloat(utilStr);
             
-            console.log('Linha', idx, '- Utilização original:', obj['utilização de Maquina'], '→ Processado:', util);
-            
             result.push({
               label: obj.data ? obj.data.substring(0, 5) : '',
               util: (isFinite(util) && util >= 0) ? util : null,
@@ -522,8 +520,6 @@
         const funcionandoData = data.map(d => d.funcionando);
         const paradoData = data.map(d => d.parado);
         const tcMedioData = data.map(d => d.tcMedio);
-        
-        console.log('Dados de utilização para o gráfico:', utilData);
         
         // Gráfico 1: Utilização de Máquina (linha)
         resizeCanvas(charts[0].canvas);
