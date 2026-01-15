@@ -148,7 +148,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         const padding = 40;
-        const bottomPadding = 60; // Mais espaço para labels rotacionados
+        const bottomPadding = 70; // Aumentado para mais espaço
         const chartWidth = canvas.width - padding * 2;
         const chartHeight = canvas.height - padding - bottomPadding;
         
@@ -171,6 +171,17 @@
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(title, canvas.width / 2, 20);
+        
+        // Linhas de grade horizontais (4 linhas)
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 4; i++) {
+          const y = padding + 30 + (chartHeight / 5) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(canvas.width - padding, y);
+          ctx.stroke();
+        }
         
         // Linha
         ctx.strokeStyle = color;
@@ -239,7 +250,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         const padding = 40;
-        const bottomPadding = 60; // Mais espaço para labels rotacionados
+        const bottomPadding = 70; // Aumentado para mais espaço
         const chartWidth = canvas.width - padding * 2;
         const chartHeight = canvas.height - padding - bottomPadding;
         const barWidth = Math.max(chartWidth / labels.length - 8, 10);
@@ -261,6 +272,17 @@
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(title, canvas.width / 2, 20);
+        
+        // Linhas de grade horizontais (4 linhas)
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 4; i++) {
+          const y = padding + (chartHeight / 5) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(canvas.width - padding, y);
+          ctx.stroke();
+        }
         
         // Barras
         labels.forEach((label, i) => {
@@ -305,7 +327,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         const padding = 40;
-        const bottomPadding = 60; // Mais espaço para labels rotacionados
+        const bottomPadding = 70; // Aumentado para mais espaço
         const chartWidth = canvas.width - padding * 2;
         const chartHeight = canvas.height - padding - bottomPadding - 20; // -20 para legenda
         const barWidth = Math.max(chartWidth / labels.length - 8, 10);
@@ -348,6 +370,17 @@
         ctx.fillRect(canvas.width / 2 + 10, legendY, 15, 15);
         ctx.fillStyle = '#fff';
         ctx.fillText(label2, canvas.width / 2 + 28, legendY + 11);
+        
+        // Linhas de grade horizontais (4 linhas)
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 4; i++) {
+          const y = padding + 20 + (chartHeight / 5) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(canvas.width - padding, y);
+          ctx.stroke();
+        }
         
         // Barras empilhadas
         labels.forEach((label, i) => {
@@ -519,7 +552,7 @@
     async function loadData() {
       try {
         console.log('Iniciando carregamento...');
-        const url = `${CONFIG.apiUrl}?token=${CONFIG.token}&_=${Date.now()}`;
+        const url = ${CONFIG.apiUrl}?token=${CONFIG.token}&_=${Date.now()};
         console.log('URL:', url);
         
         const response = await fetch(url);
@@ -538,7 +571,7 @@
         drawAllCharts(allData);
         
         document.getElementById('loading').classList.add('hidden');
-        document.getElementById('status').textContent = `Última atualização: ${new Date().toLocaleTimeString('pt-BR')} - ${allData.length} registros`;
+        document.getElementById('status').textContent = Última atualização: ${new Date().toLocaleTimeString('pt-BR')} - ${allData.length} registros;
         
         console.log('Carregamento completo!');
         
