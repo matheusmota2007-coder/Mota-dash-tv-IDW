@@ -456,6 +456,8 @@
             utilStr = utilStr.replace('%', '').replace(',', '.');
             const util = parseFloat(utilStr);
             
+            console.log('Linha', idx, '- Utilização original:', obj['Utilização de Maquina'], '→ Processado:', util);
+            
             result.push({
               label: obj.data ? obj.data.substring(0, 5) : '',
               util: (isFinite(util) && util >= 0) ? util : null,
@@ -487,6 +489,8 @@
         const funcionandoData = data.map(d => d.funcionando);
         const paradoData = data.map(d => d.parado);
         const tcMedioData = data.map(d => d.tcMedio);
+        
+        console.log('Dados de utilização para o gráfico:', utilData);
         
         // Gráfico 1: Utilização de Máquina (linha)
         resizeCanvas(charts[0].canvas);
