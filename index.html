@@ -36,9 +36,19 @@
       color: #94a3b8;
     }
     
-    #dashboard {
+    .screen {
+      display: none;
       width: 100%;
       height: calc(100vh - 80px);
+    }
+    
+    .screen.active {
+      display: block;
+    }
+    
+    .dashboard {
+      width: 100%;
+      height: 100%;
       display: grid;
       grid-template-columns: 1fr 1fr;
       grid-template-rows: 1fr 1fr;
@@ -51,11 +61,21 @@
       border-radius: 8px;
       padding: 10px;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     canvas {
       width: 100%;
       height: 100%;
+    }
+    
+    .error-message {
+      color: #ef4444;
+      font-size: 16px;
+      text-align: center;
+      padding: 20px;
     }
     
     #loading {
@@ -95,18 +115,39 @@
     <div id="status">Carregando dados...</div>
   </div>
   
-  <div id="dashboard">
-    <div class="chart-container">
-      <canvas id="chart1"></canvas>
+  <!-- TELA 1 -->
+  <div id="screen1" class="screen active">
+    <div class="dashboard">
+      <div class="chart-container">
+        <canvas id="chart1_1"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart1_2"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart1_3"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart1_4"></canvas>
+      </div>
     </div>
-    <div class="chart-container">
-      <canvas id="chart2"></canvas>
-    </div>
-    <div class="chart-container">
-      <canvas id="chart3"></canvas>
-    </div>
-    <div class="chart-container">
-      <canvas id="chart4"></canvas>
+  </div>
+  
+  <!-- TELA 2 -->
+  <div id="screen2" class="screen">
+    <div class="dashboard">
+      <div class="chart-container">
+        <canvas id="chart2_1"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart2_2"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart2_3"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart2_4"></canvas>
+      </div>
     </div>
   </div>
   
@@ -116,26 +157,55 @@
   </div>
 
   <script>
-    // ========== CONFIGURAÇÃO ==========
-    const CONFIG = {
-      apiUrl: "https://script.google.com/macros/s/AKfycbzbEO-JpjRMjJSf-xOlIU36EAKITXep3lZa5wzX_gb2DBauRdu8vdUpIknuQk-mF2SM/exec",
-      token: "90czL6LPhZ1gHHlaurPZ1xmHpxyOeBqwPYqQWa5Z9bOYddf1kc",
-      autoRefresh: 300000
+    // ========== CONFIGURAÇÃO DAS TELAS ==========
+    const SCREENS_CONFIG = {
+      screen1: {
+        // ⬇️ COLOQUE AQUI A URL DO APPSCRIPT DA TELA 1
+        apiUrl: "https://script.google.com/macros/s/AKfycbzbEO-JpjRMjJSf-xOlIU36EAKITXep3lZa5wzX_gb2DBauRdu8vdUpIknuQk-mF2SM/exec",
+        // ⬇️ COLOQUE AQUI O TOKEN DA TELA 1
+        token: "90czL6LPhZ1gHHlaurPZ1xmHpxyOeBqwPYqQWa5Z9bOYddf1kc",
+        name: "Tela 1"
+      },
+      screen2: {
+        // ⬇️ COLOQUE AQUI A URL DO APPSCRIPT DA TELA 2
+        apiUrl: "https://script.google.com/macros/s/AKfycby_3t7BRTEItZeBDKRPF2bEJV02Mw-_ryy9TwaSkMbYQKRpynbjR1U2BLlfA95bBEU9/exec",
+        // ⬇️ COLOQUE AQUI O TOKEN DA TELA 2
+        token: "90czL6LPhZ1gHHlaurPZ1xmHpxyOeBqwPYqQWa5Z9bOYddf1kc",
+        name: "Tela 2"
+      }
     };
+    
+    const SWITCH_INTERVAL = 30000; // 30 segundos
+    const AUTO_REFRESH = 300000; // 5 minutos
 
     // ========== VARIÁVEIS GLOBAIS ==========
-    const charts = [
-      { canvas: document.getElementById('chart1'), ctx: null },
-      { canvas: document.getElementById('chart2'), ctx: null },
-      { canvas: document.getElementById('chart3'), ctx: null },
-      { canvas: document.getElementById('chart4'), ctx: null }
-    ];
+    let currentScreen = 'screen1';
+    let screensData = {
+      screen1: { data: [], hasError: false, errorMsg: '' },
+      screen2: { data: [], hasError: false, errorMsg: '' }
+    };
     
-    charts.forEach(chart => {
-      chart.ctx = chart.canvas.getContext('2d');
+    const charts = {
+      screen1: [
+        { canvas: document.getElementById('chart1_1'), ctx: null },
+        { canvas: document.getElementById('chart1_2'), ctx: null },
+        { canvas: document.getElementById('chart1_3'), ctx: null },
+        { canvas: document.getElementById('chart1_4'), ctx: null }
+      ],
+      screen2: [
+        { canvas: document.getElementById('chart2_1'), ctx: null },
+        { canvas: document.getElementById('chart2_2'), ctx: null },
+        { canvas: document.getElementById('chart2_3'), ctx: null },
+        { canvas: document.getElementById('chart2_4'), ctx: null }
+      ]
+    };
+    
+    // Inicializa contextos
+    Object.keys(charts).forEach(screen => {
+      charts[screen].forEach(chart => {
+        chart.ctx = chart.canvas.getContext('2d');
+      });
     });
-
-    let allData = [];
 
     // ========== FUNÇÕES DE DESENHO ==========
     function resizeCanvas(canvas) {
@@ -152,7 +222,6 @@
         const chartWidth = canvas.width - padding * 2;
         const chartHeight = canvas.height - padding - bottomPadding;
         
-        // Filtrar valores válidos
         const validValues = values.filter(v => v !== null && !isNaN(v) && isFinite(v));
         if (validValues.length === 0) {
           ctx.fillStyle = '#94a3b8';
@@ -166,13 +235,11 @@
         const minValue = Math.min(...validValues, 0);
         const range = maxValue - minValue || 1;
         
-        // Título
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(title, canvas.width / 2, 20);
         
-        // Linhas de grade horizontais (4 linhas)
         ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
         ctx.lineWidth = 1;
         for (let i = 1; i <= 4; i++) {
@@ -183,7 +250,6 @@
           ctx.stroke();
         }
         
-        // Linha
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -206,7 +272,6 @@
         
         ctx.stroke();
         
-        // Pontos e valores
         labels.forEach((label, i) => {
           const value = values[i];
           if (value === null || isNaN(value) || !isFinite(value)) return;
@@ -214,13 +279,11 @@
           const x = padding + (i / Math.max(labels.length - 1, 1)) * chartWidth;
           const y = padding + 30 + chartHeight - ((value - minValue) / range) * chartHeight;
           
-          // Ponto
           ctx.fillStyle = color;
           ctx.beginPath();
           ctx.arc(x, y, 4, 0, Math.PI * 2);
           ctx.fill();
           
-          // Valor rotacionado em 45°
           ctx.save();
           ctx.translate(x, y - 10);
           ctx.rotate(-Math.PI / 4);
@@ -230,7 +293,6 @@
           ctx.fillText(value.toFixed(1) + suffix, 0, 0);
           ctx.restore();
           
-          // Label rotacionado em 45°
           ctx.save();
           ctx.translate(x, canvas.height - bottomPadding + 25);
           ctx.rotate(-Math.PI / 4);
@@ -255,7 +317,6 @@
         const chartHeight = canvas.height - padding - bottomPadding;
         const barWidth = Math.max(chartWidth / labels.length - 8, 10);
         
-        // Filtrar valores válidos
         const validValues = values.filter(v => v !== null && !isNaN(v) && isFinite(v));
         if (validValues.length === 0) {
           ctx.fillStyle = '#94a3b8';
@@ -267,13 +328,11 @@
         
         const maxValue = Math.max(...validValues, 1);
         
-        // Título
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(title, canvas.width / 2, 20);
         
-        // Linhas de grade horizontais (4 linhas)
         ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
         ctx.lineWidth = 1;
         for (let i = 1; i <= 4; i++) {
@@ -284,7 +343,6 @@
           ctx.stroke();
         }
         
-        // Barras
         labels.forEach((label, i) => {
           const value = values[i];
           if (value === null || isNaN(value) || !isFinite(value)) return;
@@ -293,11 +351,9 @@
           const barHeight = (value / maxValue) * chartHeight;
           const y = canvas.height - bottomPadding - barHeight;
           
-          // Desenha barra
           ctx.fillStyle = color;
           ctx.fillRect(x, y, barWidth, barHeight);
           
-          // Valor em cima rotacionado em 45°
           ctx.save();
           ctx.translate(x + barWidth / 2, y - 10);
           ctx.rotate(-Math.PI / 4);
@@ -307,7 +363,6 @@
           ctx.fillText(value.toFixed(0) + suffix, 0, 0);
           ctx.restore();
           
-          // Label rotacionado em 45°
           ctx.save();
           ctx.translate(x + barWidth / 2, canvas.height - bottomPadding + 15);
           ctx.rotate(-Math.PI / 4);
@@ -351,13 +406,11 @@
         
         const maxValue = Math.max(...maxValues, 1);
         
-        // Título
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(title, canvas.width / 2, 20);
         
-        // Legenda
         ctx.font = '11px Arial';
         const legendY = 35;
         ctx.fillStyle = color1;
@@ -371,7 +424,6 @@
         ctx.fillStyle = '#fff';
         ctx.fillText(label2, canvas.width / 2 + 28, legendY + 11);
         
-        // Linhas de grade horizontais (4 linhas)
         ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
         ctx.lineWidth = 1;
         for (let i = 1; i <= 4; i++) {
@@ -382,7 +434,6 @@
           ctx.stroke();
         }
         
-        // Barras empilhadas
         labels.forEach((label, i) => {
           const val1 = values1[i] || 0;
           const val2 = values2[i] || 0;
@@ -391,14 +442,12 @@
           
           const x = padding + i * (barWidth + 8);
           
-          // Barra 1 (funcionando - embaixo)
           const height1 = (val1 / maxValue) * chartHeight;
           const y1 = canvas.height - bottomPadding - height1;
           
           ctx.fillStyle = color1;
           ctx.fillRect(x, y1, barWidth, height1);
           
-          // Valor dentro da barra 1
           if (height1 > 20) {
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 10px Arial';
@@ -406,14 +455,12 @@
             ctx.fillText(val1.toFixed(1) + 'h', x + barWidth / 2, y1 + height1 / 2 + 3);
           }
           
-          // Barra 2 (parado - em cima)
           const height2 = (val2 / maxValue) * chartHeight;
           const y2 = y1 - height2;
           
           ctx.fillStyle = color2;
           ctx.fillRect(x, y2, barWidth, height2);
           
-          // Valor dentro da barra 2
           if (height2 > 20) {
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 10px Arial';
@@ -421,7 +468,6 @@
             ctx.fillText(val2.toFixed(1) + 'h', x + barWidth / 2, y2 + height2 / 2 + 3);
           }
           
-          // Label rotacionado em 45°
           ctx.save();
           ctx.translate(x + barWidth / 2, canvas.height - bottomPadding + 15);
           ctx.rotate(-Math.PI / 4);
@@ -448,43 +494,35 @@
         const total = hours + minutes / 60 + seconds / 3600;
         return isFinite(total) ? total : 0;
       } catch (error) {
-        console.error('Erro no parseHMS:', error);
         return 0;
       }
     }
 
     function parseData(json) {
       try {
-        console.log('Processando dados...');
         const headers = json.headers || [];
         const rows = json.rows || [];
-        
         const result = [];
         
-        rows.forEach((row, idx) => {
+        rows.forEach((row) => {
           try {
             const obj = {};
             headers.forEach((h, i) => {
               obj[h] = row[i];
             });
             
-            // Parse de peças
             let pecasStr = String(obj['Peças Fabric.'] || '0');
             pecasStr = pecasStr.replace(/\./g, '').replace(',', '.');
             const pecas = parseFloat(pecasStr) || 0;
             
             const funcionando = parseHMS(obj['Funcionando']);
             
-            // Calcular TC Médio (Tempo de Ciclo) com proteção
             let tcMedio = null;
             if (pecas > 0 && funcionando > 0 && isFinite(pecas) && isFinite(funcionando)) {
               tcMedio = (funcionando * 60) / pecas;
-              if (!isFinite(tcMedio)) {
-                tcMedio = null;
-              }
+              if (!isFinite(tcMedio)) tcMedio = null;
             }
             
-            // Parse de utilização (com letra minúscula!)
             let utilStr = String(obj['utilização de Maquina'] || '0');
             utilStr = utilStr.replace('%', '').replace(',', '.');
             const util = parseFloat(utilStr);
@@ -498,11 +536,10 @@
               tcMedio: tcMedio
             });
           } catch (rowError) {
-            console.error('Erro ao processar linha:', idx, rowError);
+            console.error('Erro ao processar linha:', rowError);
           }
         });
         
-        console.log('Dados processados com sucesso:', result);
         return result;
       } catch (error) {
         console.error('Erro no parseData:', error);
@@ -510,10 +547,8 @@
       }
     }
 
-    function drawAllCharts(data) {
+    function drawAllCharts(screenId, data) {
       try {
-        console.log('Desenhando gráficos...');
-        
         const labels = data.map(d => d.label);
         const utilData = data.map(d => d.util);
         const pecasData = data.map(d => d.pecas);
@@ -521,76 +556,125 @@
         const paradoData = data.map(d => d.parado);
         const tcMedioData = data.map(d => d.tcMedio);
         
-        // Gráfico 1: Utilização de Máquina (linha)
-        resizeCanvas(charts[0].canvas);
-        drawLineChart(charts[0].ctx, charts[0].canvas, labels, utilData, 'Utilização de Máquina', '#3b82f6', '%');
+        resizeCanvas(charts[screenId][0].canvas);
+        drawLineChart(charts[screenId][0].ctx, charts[screenId][0].canvas, labels, utilData, 'Utilização de Máquina', '#3b82f6', '%');
         
-        // Gráfico 2: Produção Diária (barras)
-        resizeCanvas(charts[1].canvas);
-        drawBarChart(charts[1].ctx, charts[1].canvas, labels, pecasData, 'Peças Fabricadas', '#22c55e', '');
+        resizeCanvas(charts[screenId][1].canvas);
+        drawBarChart(charts[screenId][1].ctx, charts[screenId][1].canvas, labels, pecasData, 'Peças Fabricadas', '#22c55e', '');
         
-        // Gráfico 3: Funcionamento/Parado (barras empilhadas)
-        resizeCanvas(charts[2].canvas);
-        drawStackedBarChart(charts[2].ctx, charts[2].canvas, labels, funcionandoData, paradoData, 
+        resizeCanvas(charts[screenId][2].canvas);
+        drawStackedBarChart(charts[screenId][2].ctx, charts[screenId][2].canvas, labels, funcionandoData, paradoData, 
           'Horas Func. / Parado', '#22c55e', '#ef4444', 'Funcionando', 'Parado');
         
-        // Gráfico 4: Tempo de Ciclo Médio (linha)
-        resizeCanvas(charts[3].canvas);
-        drawLineChart(charts[3].ctx, charts[3].canvas, labels, tcMedioData, 'TC Médio (min/peça)', '#f59e0b', ' min');
-        
-        console.log('Gráficos desenhados com sucesso!');
+        resizeCanvas(charts[screenId][3].canvas);
+        drawLineChart(charts[screenId][3].ctx, charts[screenId][3].canvas, labels, tcMedioData, 'TC Médio (min/peça)', '#f59e0b', ' min');
       } catch (error) {
         console.error('Erro no drawAllCharts:', error);
       }
     }
 
+    function showError(screenId, message) {
+      const screenElement = document.getElementById(screenId);
+      const containers = screenElement.querySelectorAll('.chart-container');
+      containers.forEach(container => {
+        container.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+      });
+    }
+
     // ========== CARREGAMENTO ==========
-    async function loadData() {
+    async function loadScreenData(screenId) {
       try {
-        console.log('Iniciando carregamento...');
-        const url = `${CONFIG.apiUrl}?token=${CONFIG.token}&_=${Date.now()}`;
-        console.log('URL:', url);
+        console.log(`Carregando dados da ${SCREENS_CONFIG[screenId].name}...`);
+        const config = SCREENS_CONFIG[screenId];
+        const url = `${config.apiUrl}?token=${config.token}&_=${Date.now()}`;
         
         const response = await fetch(url);
-        console.log('Response status:', response.status);
-        
-        const json = await response.json();
-        console.log('JSON recebido:', json);
-        
-        allData = parseData(json);
-        console.log('Dados processados:', allData.length, 'registros');
-        
-        if (allData.length === 0) {
-          throw new Error('Nenhum dado foi processado');
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
         }
         
-        drawAllCharts(allData);
+        const json = await response.json();
+        const data = parseData(json);
         
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('status').textContent = `Última atualização: ${new Date().toLocaleTimeString('pt-BR')} - ${allData.length} registros`;
+        if (data.length === 0) {
+          throw new Error('Nenhum dado disponível');
+        }
         
-        console.log('Carregamento completo!');
+        screensData[screenId].data = data;
+        screensData[screenId].hasError = false;
+        screensData[screenId].errorMsg = '';
+        
+        drawAllCharts(screenId, data);
+        console.log(`${SCREENS_CONFIG[screenId].name} carregada com sucesso!`);
         
       } catch (error) {
-        console.error('Erro detalhado:', error);
-        document.getElementById('loading').innerHTML = 
-          '<div style="color:#ef4444; font-size:18px;">Erro ao carregar dados<br><small>' + 
-          error.message + '</small></div>';
+        console.error(`Erro ao carregar ${SCREENS_CONFIG[screenId].name}:`, error);
+        screensData[screenId].hasError = true;
+        screensData[screenId].errorMsg = error.message;
+        showError(screenId, `Erro ao carregar dados: ${error.message}`);
       }
+    }
+
+    async function loadAllScreens() {
+      await Promise.all([
+        loadScreenData('screen1'),
+        loadScreenData('screen2')
+      ]);
+      
+      document.getElementById('loading').classList.add('hidden');
+      updateStatus();
+    }
+
+    // ========== ALTERNÂNCIA DE TELAS ==========
+    function switchScreen() {
+      const screen1El = document.getElementById('screen1');
+      const screen2El = document.getElementById('screen2');
+      
+      if (currentScreen === 'screen1') {
+        screen1El.classList.remove('active');
+        screen2El.classList.add('active');
+        currentScreen = 'screen2';
+      } else {
+        screen2El.classList.remove('active');
+        screen1El.classList.add('active');
+        currentScreen = 'screen1';
+      }
+      
+      updateStatus();
+    }
+
+    function updateStatus() {
+      const config = SCREENS_CONFIG[currentScreen];
+      const screenData = screensData[currentScreen];
+      
+      let statusText = `${config.name}`;
+      
+      if (screenData.hasError) {
+        statusText += ` - ❌ Erro`;
+      } else if (screenData.data.length > 0) {
+        statusText += ` - ✓ ${screenData.data.length} registros - ${new Date().toLocaleTimeString('pt-BR')}`;
+      }
+      
+      document.getElementById('status').textContent = statusText;
     }
 
     // ========== INICIALIZAÇÃO ==========
     window.addEventListener('resize', () => {
-      if (allData.length > 0) {
-        drawAllCharts(allData);
-      }
+      Object.keys(screensData).forEach(screenId => {
+        if (screensData[screenId].data.length > 0 && !screensData[screenId].hasError) {
+          drawAllCharts(screenId, screensData[screenId].data);
+        }
+      });
     });
 
-    // Auto-refresh
-    setInterval(loadData, CONFIG.autoRefresh);
+    // Alterna telas a cada 30 segundos
+    setInterval(switchScreen, SWITCH_INTERVAL);
+
+    // Atualiza dados a cada 5 minutos
+    setInterval(loadAllScreens, AUTO_REFRESH);
 
     // Inicia
-    loadData();
+    loadAllScreens();
   </script>
 </body>
 </html>
